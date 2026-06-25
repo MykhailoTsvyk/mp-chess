@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+/* ==========================================================
+   1. TAILWIND v4 CORE CONFIGURATION (THE FIX)
+   ========================================================== */
+@theme {
+    /* In v4, you define them as "color-[name]" so Tailwind generates bg-[name], text-[name], etc. */
+    --color-ui-main: var(--bg-main);
+    --color-ui-surface: var(--bg-surface);
+    --color-ui-interactive: var(--bg-interactive);
+
+    --color-ui-border: var(--border-main);
+    --color-ui-subtle: var(--border-subtle);
+
+    --color-ui-primary: var(--text-primary);
+    --color-ui-secondary: var(--text-secondary);
+
+    --color-ui-accent: var(--accent-color);
+    --color-ui-contrast: var(--accent-contrast);
+}
+
+/* ==========================================================
+   2. DYNAMIC RUNTIME VARIABLE VALUES (Keep this exactly the same)
+   ========================================================== */
+:root, [data-theme="light"] {
+    --bg-main: #f8fafc;
+    --bg-surface: #ffffff;
+    --bg-interactive: #f1f5f9;
+    --border-main: #e2e8f0;
+    --border-subtle: #f1f5f9;
+    --text-primary: #0f172a;
+    --text-secondary: #64748b;
+    --accent-color: #d97706;
+    --accent-contrast: #ffffff;
+}
+
+[data-theme="dark"] {
+    --bg-main: #020617;
+    --bg-surface: #0f172a;
+    --bg-interactive: #1e293b;
+    --border-main: #1e293b;
+    --border-subtle: #0f172a;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --accent-color: #f59e0b;
+    --accent-contrast: #0f172a;
+}
