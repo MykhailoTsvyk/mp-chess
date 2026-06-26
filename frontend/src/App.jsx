@@ -1,13 +1,24 @@
 import MainLayout from "./layout/MainLayout.jsx";
 import GamePage from "./pages/GamePage.jsx";
+import RegisterForm from "./features/authentication/RegisterForm.jsx";
+import {BrowserRouter, Route, Routes} from "react-router";
+import AuthenticationPage from "./pages/AuthenticationPage.jsx";
+import HomePage from "./pages/HomePage.jsx";
 
 
 function App() {
 
   return (
-      <MainLayout>
-        <GamePage></GamePage>
-      </MainLayout>
+      <BrowserRouter>
+        <Routes>
+            <Route path="/" element={<HomePage/>}/>
+            <Route path={"/authentication"} element={<AuthenticationPage/>}/>
+        </Routes>
+      </BrowserRouter>
+      // <MainLayout>
+      //   <GamePage></GamePage>
+      //     <RegisterForm/>
+      // </MainLayout>
   )
 
 }

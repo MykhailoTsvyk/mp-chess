@@ -56,7 +56,7 @@ export default function Header() {
                     </div>
 
                     {/* Notifications / Friend Invites Bell */}
-                    <button className="relative p-1.5 text-ui-secondary hover:text-ui-primary transition-colors focus:outline-none rounded-full hover:bg-ui-interactive">
+                    <button className="shrink-0 relative p-1.5 text-ui-secondary hover:text-ui-primary transition-colors focus:outline-none rounded-full hover:bg-ui-interactive">
                         <img src={notificationIcon} alt="" className={theme === "dark" ? "invert" : ""} />
                     </button>
 
@@ -65,7 +65,7 @@ export default function Header() {
                         type="button"
                         onClick={toggleTheme}
                         aria-label="Toggle theme"
-                        className="relative p-1.5 text-ui-secondary hover:text-ui-primary transition-colors focus:outline-none rounded-full hover:bg-ui-interactive"
+                        className="shrink-0 relative p-1.5 text-ui-secondary hover:text-ui-primary transition-colors focus:outline-none rounded-full hover:bg-ui-interactive"
                     >
                         <img src={themeIcon} alt="change theme" className={theme === "dark" ? "invert" : ""} />
                     </button>
