@@ -1,9 +1,16 @@
 CREATE TABLE users(
     ID SERIAL PRIMARY KEY,
-    username VARCHAR(50) UNIQUE NOT NULL,
+    username VARCHAR(20) UNIQUE NOT NULL,
     email VARCHAR(50) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
+
+CREATE TABLE tokens(
+    ID SERIAL PRIMARY KEY,
+    token TEXT NOT NULL,
+    user_id INT NOT NULL,
+    CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 )
 
 CREATE TYPE friendship_status AS ENUM ('accepted', 'rejected', 'pending');
@@ -19,8 +26,17 @@ CREATE TABLE friendships (
     CONSTRAINT check_not_self CHECK (user_1 <> user_2)
 );
 
-CREATE TABLE games(
-    ID SERIAL PRIMARY KEY,
+CREATE TYPE match_status AS ENUM ('pending', 'active', 'draw', 'finished', 'aborted')
+-- pending for created match without both players joining it
+-- aborted for cancelled game
+
+CREATE TABLE games (
+    id SERIAL PRIMARY KEY,
     moves VARCHAR(7)[],
-    final_position TEXT DEFAULT "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-)
+    status match_status DEFAULT 'pending',
+    final_position TEXT DEFAULT 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+    player_1 INT NOT NULL,
+    player_2 INT NOT NULL,
+    CONSTRAINT fk_player_1 FOREIGN KEY (player_1) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_player_2 FOREIGN KEY (player_2) REFERENCES users(id) ON DELETE CASCADE
+);
