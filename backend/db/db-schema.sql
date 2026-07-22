@@ -2,16 +2,26 @@ CREATE TABLE users(
     ID SERIAL PRIMARY KEY,
     username VARCHAR(20) UNIQUE NOT NULL,
     email VARCHAR(50) UNIQUE NOT NULL,
+    is_activated BOOLEAN NOT NULL DEFAULT FALSE,
     password VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
+
+CREATE TABLE activation_tokens(
+    ID SERIAL PRIMARY KEY,
+    user_id INT NOT NULL UNIQUE,
+    CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    token VARCHAR(64) UNIQUE NOT NULL,
+    expires_at TIMESTAMP NOT NULL DEFAULT (CURRENT_TIMESTAMP + INTERVAL '1 hour'),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )
 
 CREATE TABLE tokens(
     ID SERIAL PRIMARY KEY,
-    token TEXT NOT NULL,
-    user_id INT NOT NULL,
+    refresh_token TEXT NOT NULL,
+    user_id INT NOT NULL UNIQUE,
     CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-)
+);
 
 CREATE TYPE friendship_status AS ENUM ('accepted', 'rejected', 'pending');
 

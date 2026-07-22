@@ -83,3 +83,40 @@ export const validateLogin = (req, res, next) => {
 
     next()
 }
+
+export const protectedAuthMiddleware =   (req, res, next)=> {
+    try {
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader) {
+            return res.status(401).json({
+                message: "Unauthorized"
+            });
+        }
+
+        const accessToken = authHeader.split(" ")[1];
+
+        if (!accessToken) {
+            return res.status(401).json({
+                message: "Unauthorized"
+            });
+        }
+
+        const userData = tokenService.validateAccess(accessToken);
+
+        if (!userData) {
+            return res.status(401).json({
+                message: "Invalid or expired token"
+            });
+        }
+
+        req.user = userData;
+
+        next();
+
+    } catch (e) {
+        return res.status(401).json({
+            message: "Unauthorized"
+        });
+    }
+}
