@@ -2,10 +2,12 @@ import { useState } from "react";
 import themeIcon from "../assets/images/icons/theme-change.svg"
 import notificationIcon from "../assets/images/icons/notification.svg"
 import {useTheme} from "../hooks/useTheme.jsx";
+import {useAuth} from "../context/AuthContext.jsx";
 
 export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [theme, toggleTheme] = useTheme()
+    const {user} = useAuth()
 
     return (
         <header className="w-full bg-ui-surface text-ui-primary border-b border-ui-subtle relative shadow-sm z-50">
@@ -73,10 +75,10 @@ export default function Header() {
                     {/* User Account / Profile Dropdown Trigger */}
                     <div className="flex items-center space-x-2 pl-2 border-l border-ui-subtle cursor-pointer group">
                         <div className="w-8 h-8 rounded-full bg-accent-ui-color text-accent-ui-contrast flex items-center justify-center font-bold uppercase shadow-sm text-sm">
-                            U
+                            {user ? user.username[0] : 'G'}
                         </div>
                         <span className="text-sm font-medium hidden lg:block text-ui-secondary group-hover:text-accent-ui-color transition-colors">
-                          Guest
+                            {user ? user.username : 'Guest'}
                         </span>
                     </div>
 
