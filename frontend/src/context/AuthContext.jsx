@@ -3,7 +3,6 @@ import {createContext, useContext, useState} from "react";
 const AuthContext = createContext();
 
 export default function AuthProvider({children}) {
-
     const [user, setUser] = useState(() => {
         const savedUser = localStorage.getItem('user')
         return savedUser ? JSON.parse(savedUser) : null
@@ -11,6 +10,8 @@ export default function AuthProvider({children}) {
     // lazy init to execute  that only once when component is loaded
     const [token, setToken] = useState(() => localStorage.getItem('token'))
 
+    // Whenever token state is updated, this var is going to be updated as well
+    const isAuthenticated = Boolean(token)
 
     const login = ({access, user}) => {
         localStorage.setItem('token', access);
@@ -27,7 +28,7 @@ export default function AuthProvider({children}) {
     }
 
     return (
-        <AuthContext value={{user, token, login, logout}}>
+        <AuthContext value={{user, token, login, logout, isAuthenticated}}>
             {children}
         </AuthContext>
     )

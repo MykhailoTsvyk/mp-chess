@@ -104,7 +104,7 @@ export const protectedAuthMiddleware =   (req, res, next)=> {
 
         const userData = tokenService.validateAccess(accessToken);
 
-        if (!userData) {
+        if (userData != null) {
             return res.status(401).json({
                 message: "Invalid or expired token"
             });

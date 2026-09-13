@@ -1,50 +1,57 @@
-import {loginUser} from "../../api/authService.js";
-import {useState} from "react";
-import {useNavigate} from "react-router";
-import {useAuth} from "../../context/AuthContext.jsx";
+import { loginUser } from "../../api/authService.js";
+import { useState } from "react";
+import { useNavigate } from "react-router";
+import { useAuth } from "../../context/AuthContext.jsx";
 
-export default function LoginForm({changePage}) {
-    const currentYear = new Date().getFullYear();
-    const [formData, setFormData] = useState({email: '', password: ''})
+export default function LoginForm({ changePage }) {
+    const currentYear = new Date().getFullYear()
+    const [email, setEmail] = useState('')
+    const [password, setPassword] = useState('')
+    const [error, setError] = useState('')
+
     const navigate = useNavigate()
-    const {login} = useAuth()
-
-    function handleChange(e){
-        setFormData({...formData, [e.target.name]: e.target.value})
-        console.log(formData)
-    }
+    const { login } = useAuth()
 
     async function handleSubmit(e) {
         e.preventDefault()
+        setError('')
+
+        const payload = {
+            email: email.trim(),
+            password: password
+        }
 
         try {
-            const data = await loginUser(formData)
-            console.log(data)
+            const data = await loginUser(payload)
             login(data)
             navigate('/')
-        } catch (e) {
-            console.log(e)
+        } catch (err) {
+            setError(err.response?.data?.message || 'Login failed')
         }
     }
 
     return (
         <>
             <form onSubmit={handleSubmit}
-                className="shadow-md bg-ui-surface flex-col rounded-md pb-4 w-full">
+                  className="shadow-md bg-ui-surface flex-col rounded-md pb-4 w-full">
                 <h1 className="text-center text-3xl text-ui-primary font-bold p-4">Log In</h1>
+
+                {error && (
+                    <p className="text-center text-red-500 font-semibold mb-2 text-sm">{error}</p>
+                )}
 
                 <div className="mb-4 w-3/4 m-auto text-ui-primary">
                     <label htmlFor="email-input"
                            className="block text-sm font-bold">
                         Email
                     </label>
-                    <input className="w-1/1 block bg-ui-main border-2 outline-0 border-ui-border rounded-md p-2 shadow"
+                    <input className="w-full block bg-ui-main border-2 outline-0 border-ui-border rounded-md p-2 shadow"
                            id="email-input"
                            type="email"
-                           name="email"
                            placeholder="Enter your email"
+                           value={email}
+                           onChange={(e) => setEmail(e.target.value)}
                            required
-                           onChange={handleChange}
                     />
                 </div>
 
@@ -53,18 +60,19 @@ export default function LoginForm({changePage}) {
                            className="block text-sm font-bold">
                         Password
                     </label>
-                    <input className="w-1/1 block bg-ui-main border-2 outline-0 border-ui-border rounded-md p-2 shadow"
+                    <input className="w-full block bg-ui-main border-2 outline-0 border-ui-border rounded-md p-2 shadow"
                            id="password-input"
                            type="password"
-                           name="password"
                            placeholder="Enter password"
-                           onChange={handleChange}
+                           value={password}
+                           onChange={(e) => setPassword(e.target.value)}
                            required
                     />
                 </div>
 
                 <div className="flex flex-col w-3/4 m-auto text-ui-primary">
-                    <button onClick={() => {changePage("register")}}
+                    <button type="button"
+                            onClick={() => changePage("register")}
                             className="block text-sm mb-4 underline cursor-pointer">
                         Do not have an account? Register
                     </button>
@@ -74,14 +82,10 @@ export default function LoginForm({changePage}) {
                         Log In
                     </button>
                 </div>
-
-
-
             </form>
-            <p className="text-center text-ui-secondary text-xs">
+            <p className="text-center text-ui-secondary text-xs mt-2">
                 &copy;{currentYear} All rights reserved.
             </p>
         </>
-
     )
 }

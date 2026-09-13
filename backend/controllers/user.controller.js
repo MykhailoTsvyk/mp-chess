@@ -1,5 +1,6 @@
 import userService from "../services/user.service.js";
 import emailService from "../services/email.service.js";
+import tokenService from "../services/token.service.js";
 // 36:32
 class userController {
     async register(req, res) {
@@ -11,7 +12,9 @@ class userController {
             res.cookie('refreshToken', userData.refresh, {maxAge: 14 * 24 * 60 * 60 * 1000, httpOnly: true})
             res.json({access: userData.access, user: userData.user})
         } catch (e) {
-            res.json(e)
+            res.status(e.status || 400).json({
+                message: e.message || 'Registration error'
+            })
         }
 
     }

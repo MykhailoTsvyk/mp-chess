@@ -1,19 +1,26 @@
-import MainLayout from "./layout/MainLayout.jsx";
-import GamePage from "./pages/GamePage.jsx";
-import RegisterForm from "./features/authentication/RegisterForm.jsx";
-import {BrowserRouter, Route, Routes} from "react-router";
+import {BrowserRouter, Navigate, Route, Routes} from "react-router";
 import AuthenticationPage from "./pages/AuthenticationPage.jsx";
 import HomePage from "./pages/HomePage.jsx";
-import {createContext} from "react";
-
+import {useAuth} from "./context/AuthContext.jsx";
+import {useSocket} from "./context/SocketContext.jsx";
+import ProfilePage from "./pages/ProfilePage.jsx";
 
 function App() {
+    const {isAuthenticated} = useAuth()
+
+    const {socket, isConnected} = useSocket()
+    console.log(isConnected)
 
   return (
       <BrowserRouter>
         <Routes>
             <Route path="/" element={<HomePage/>}/>
-            <Route path={"/authentication"} element={<AuthenticationPage/>}/>
+            <Route path="/authentication"
+                element={!isAuthenticated ? <AuthenticationPage/> : <Navigate to="/" replace/>}
+            />
+            <Route path="/profile"
+                   element={<ProfilePage/>}
+            />
         </Routes>
       </BrowserRouter>
       // <MainLayout>
