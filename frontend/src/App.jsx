@@ -4,12 +4,13 @@ import HomePage from "./pages/HomePage.jsx";
 import {useAuth} from "./context/AuthContext.jsx";
 import {useSocket} from "./context/SocketContext.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
+import ActivationPage from "./pages/ActivationPage.jsx";
 
 function App() {
     const {isAuthenticated} = useAuth()
 
     const {socket, isConnected} = useSocket()
-    console.log(isConnected)
+    console.log(socket)
 
   return (
       <BrowserRouter>
@@ -19,16 +20,14 @@ function App() {
                 element={!isAuthenticated ? <AuthenticationPage/> : <Navigate to="/" replace/>}
             />
             <Route path="/profile"
-                   element={<ProfilePage/>}
+                   element={isAuthenticated ? <ProfilePage/> : <Navigate to="/" replace />}
+            />
+            <Route path="/activation/:token"
+                   element={<ActivationPage/>}
             />
         </Routes>
       </BrowserRouter>
-      // <MainLayout>
-      //   <GamePage></GamePage>
-      //     <RegisterForm/>
-      // </MainLayout>
   )
-
 }
 
 export default App

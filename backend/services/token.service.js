@@ -29,7 +29,7 @@ class tokenService {
         }
     }
 
-    // save token to db OR replace it if it exists
+    // save REFRESH token to db OR update it if user already have had a token
     async saveToken(userID, refreshToken) {
         const existingToken = await db.query(`SELECT * FROM tokens WHERE user_id = $1`, [userID])
 

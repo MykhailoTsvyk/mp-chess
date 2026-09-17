@@ -1,8 +1,7 @@
-export default function GameCard({game}){
+export default function GameCard({ game }) {
     return (
         <div
-            key={game.id}
-            className="flex justify-between items-center bg-ui-main p-4 rounded-md border border-ui-border"
+            className="flex justify-between items-center bg-ui-main p-4 rounded-md border border-ui-border transition-all duration-200 hover:bg-ui-interactive hover:border-ui-accent hover:shadow-sm cursor-pointer"
         >
             <div>
                 <span className="font-semibold block text-ui-primary">vs {game.opponent}</span>

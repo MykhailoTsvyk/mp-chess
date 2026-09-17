@@ -11,7 +11,6 @@ class userService {
 
             const candidate = await db.query(`INSERT INTO users(username, email, password) VALUES ($1, $2, $3) RETURNING *`,
                 [username, email, hashedPass])
-
             const newUserDto = new UserDto(candidate[0])
             const tokens = tokenService.generateTokens({...newUserDto})
             await tokenService.saveToken(newUserDto.id, tokens.refresh)
@@ -58,8 +57,14 @@ class userService {
     async generateActivationLink(userID){
         try {
             const token = crypto.randomBytes(32).toString("hex")
-            await db.query(`INSERT INTO activation_tokens (user_id, token) VALUES ($1, $2)`, [userID, token])
-            return `${process.env.API_URL}/activate/${token}`
+            await db.query(`
+                INSERT INTO activation_tokens (user_id, token)
+                VALUES ($1, $2)
+                ON CONFLICT (user_id)
+                DO UPDATE SET
+                token = EXCLUDED.token`, [userID, token])
+
+            return `${process.env.CLIENT_URL}/activation/${token}`
         } catch (e) {
             console.log(e)
         }
@@ -92,15 +97,35 @@ class userService {
         }
     }
 
-    async activate(activationLink){
+    // ADD check whether user is already activated in order to avoid useless links requesting
+    async activate(activationLink) {
         try {
-            const userID = await db.query(`SELECT user_id FROM activation_tokens WHERE token = $1`, [activationLink])
-            await db.query(`UPDATE users SET is_activated = TRUE WHERE id = $1`, [userID[0].user_id])
-            await db.query(`DELETE FROM activation_tokens WHERE user_id = $1`, [userID[0].user_id])
+
+            const result = await db.oneOrNone(
+                `SELECT user_id FROM activation_tokens WHERE token = $1`,
+                [activationLink]
+            )
+
+            if (!result) {
+                throw new Error("Invalid activation link")
+            }
+
+            const user = await db.one(
+                `UPDATE users
+                SET is_activated = TRUE
+                WHERE id = $1
+                RETURNING *`, [result.user_id])
+
+            await db.query(`DELETE FROM activation_tokens WHERE user_id = $1`, [result.user_id])
+
+            return user
+
         } catch (e) {
             console.log(e)
+            throw e
         }
     }
+
 }
 
 export default new userService()

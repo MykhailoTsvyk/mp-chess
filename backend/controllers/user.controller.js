@@ -1,6 +1,10 @@
 import userService from "../services/user.service.js";
 import emailService from "../services/email.service.js";
+import jwt from "jsonwebtoken";
+import db from "../db/db.js";
 import tokenService from "../services/token.service.js";
+import userDto from "../dtos/user.dto.js";
+
 // 36:32
 class userController {
     async register(req, res) {
@@ -34,13 +38,58 @@ class userController {
         }
     }
 
-    async activate(req, res){
+    async activate(req, res) {
         try {
             const activationLink = req.params.link
-            await userService.activate(activationLink)
-            return res.redirect(process.env.CLIENT_URL)
+
+            const user = await userService.activate(activationLink)
+
+            const tokens = tokenService.generateTokens({
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                created_at: user.created_at,
+                is_activated: user.is_activated,
+                elo: user.elo
+            })
+
+            await tokenService.saveToken(user.id, tokens.refresh)
+
+            res.cookie("refreshToken", tokens.refresh, {
+                httpOnly: true,
+                maxAge: 30 * 24 * 60 * 60 * 1000,
+            })
+
+            return res.json({
+                accessToken: tokens.access,
+                user: new userDto(user)
+            })
+
         } catch (e) {
             console.log(e)
+
+            return res.status(400).json({
+                message: e.message
+            })
+        }
+    }
+
+
+    async resendActivation(req, res){
+        try {
+            console.log(req.user)
+            const user = jwt.decode(req.cookies.refreshToken, process.env.JWT_REFRESH_SECRET)
+            const activationLink = await userService.generateActivationLink(user.id)
+            await emailService.sendActivationEmail(new userDto(user), activationLink)
+            console.log(activationLink)
+            return res.status(200).json({
+                message: "Link was sent to the email!"
+            })
+        } catch (e) {
+            console.log(e)
+            res.status(400).json({
+                message: "Error: Activation link was not sent"
+            })
         }
     }
 

@@ -7,7 +7,7 @@ export default function GameHistory(){
     ]
 
     return(
-        <div className="bg-ui-surface border-2 border-ui-border rounded-lg p-6 shadow-md">
+        <div className="bg-ui-surface border-2 border-ui-border rounded-lg p-6 shadow-md cursor-pointer">
             <h2 className="text-xl font-bold text-ui-primary mb-4 border-b border-ui-border pb-2">
                 Recent Matches
             </h2>

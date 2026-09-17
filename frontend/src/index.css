@@ -1,6 +1,5 @@
 @import "tailwindcss";
 
-
 @theme {
     --color-ui-main: var(--bg-main);
     --color-ui-surface: var(--bg-surface);
@@ -14,8 +13,14 @@
 
     --color-ui-accent: var(--accent-color);
     --color-ui-contrast: var(--accent-contrast);
-}
 
+    /* Attention & Warning Colors */
+    --color-ui-danger: var(--danger-color);
+    --color-ui-danger-hover: var(--danger-hover);
+    --color-ui-danger-subtle: var(--danger-subtle);
+    --color-ui-danger-border: var(--danger-border);
+    --color-ui-danger-text: var(--danger-text);
+}
 
 :root, [data-theme="light"] {
     --bg-main: #f8fafc;
@@ -27,6 +32,13 @@
     --text-secondary: #64748b;
     --accent-color: #d97706;
     --accent-contrast: #ffffff;
+
+    /* Danger / Warning - Light Mode */
+    --danger-color: #dc2626;        /* red-600 */
+    --danger-hover: #b91c1c;        /* red-700 */
+    --danger-subtle: #fef2f2;       /* red-50 */
+    --danger-border: #fca5a5;       /* red-300 */
+    --danger-text: #991b1b;         /* red-800 */
 }
 
 [data-theme="dark"] {
@@ -39,4 +51,11 @@
     --text-secondary: #94a3b8;
     --accent-color: #f59e0b;
     --accent-contrast: #0f172a;
+
+    /* Danger / Warning - Dark Mode */
+    --danger-color: #ef4444;        /* red-500 */
+    --danger-hover: #dc2626;        /* red-600 */
+    --danger-subtle: #450a0a;       /* red-950 */
+    --danger-border: #7f1d1d;       /* red-900 */
+    --danger-text: #fca5a5;         /* red-300 */
 }

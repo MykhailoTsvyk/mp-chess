@@ -2,9 +2,12 @@ import MainLayout from "../layout/MainLayout.jsx"
 import { Link } from "react-router"
 import { useAuth } from "../context/AuthContext.jsx"
 import GameHistory from "../components/GameHistory.jsx";
+import MatchmakingWindow from "../components/MatchmakingWindow.jsx";
+import {useState} from "react";
 
 export default function HomePage() {
-    const { user, isAuthenticated } = useAuth()
+    const {user, isAuthenticated} = useAuth()
+    const [isMatchmaking, setIsMatchmaking] = useState(false)
 
     if (isAuthenticated) {
         return (
@@ -30,10 +33,12 @@ export default function HomePage() {
                         <button
                             type="button"
                             className="bg-ui-accent hover:opacity-90 text-ui-contrast font-bold text-lg px-8 py-4 rounded-lg shadow-lg cursor-pointer transition transform active:scale-95"
+                            onClick={() => setIsMatchmaking(true)}
                         >
                             Play Game
                         </button>
                     </div>
+                    {isMatchmaking && (<MatchmakingWindow cancelMatchmaking={setIsMatchmaking}/>)}
 
                     <GameHistory/>
                 </div>

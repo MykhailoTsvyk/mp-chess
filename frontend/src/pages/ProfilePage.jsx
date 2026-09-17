@@ -2,10 +2,15 @@ import { useAuth } from "../context/AuthContext"
 import { useSocket } from "../context/SocketContext"
 import MainLayout from "../layout/MainLayout.jsx";
 import GameHistory from "../components/GameHistory.jsx";
+import EmailVerification from "../components/EmailVerification.jsx";
 
 export default function ProfilePage() {
-    const { user } = useAuth()
+    const { user, logout } = useAuth()
     const { isConnected } = useSocket()
+
+    function handleLogout(){
+        logout()
+    }
 
     return (
         <MainLayout>
@@ -16,7 +21,7 @@ export default function ProfilePage() {
                     <div className="bg-ui-surface border border-ui-border rounded-xl p-6 shadow-md flex flex-col md:flex-row items-center gap-6">
                         <div className="relative">
                             <div className="w-24 h-24 rounded-full bg-ui-accent text-ui-contrast flex items-center justify-center text-3xl font-bold border-2 border-ui-border">
-                                {user?.username ? user.username.substring(0, 2).toUpperCase() : "JD"}
+                                {user.username.substring(0, 2).toUpperCase()}
                             </div>
                             <span
                                 className={`absolute bottom-0 right-0 w-4 h-4 border-2 border-ui-surface rounded-full ${
@@ -28,20 +33,19 @@ export default function ProfilePage() {
 
                         <div className="flex-1 text-center md:text-left">
                             <div className="flex flex-col md:flex-row md:items-center gap-2">
-                                <h1 className="text-2xl font-bold">{user?.username || "John Doe"}</h1>
+                                <h1 className="text-2xl font-bold">{user?.username}</h1>
                                 <span className="inline-block bg-ui-interactive text-ui-accent text-xs font-semibold px-2.5 py-1 rounded-full border border-ui-border w-fit mx-auto md:mx-0">
                                 ELO {user?.elo || 1200}
                             </span>
                             </div>
-                            <p className="text-ui-secondary text-sm mt-1">
-                                {user?.email || "user@example.com"}
-                            </p>
                         </div>
 
                         <button className="bg-ui-accent text-ui-contrast hover:opacity-90 active:scale-95 px-4 py-2 rounded-lg font-medium transition-all shadow-sm">
                             Edit Profile
                         </button>
                     </div>
+
+                    {!user.is_activated && <EmailVerification/>}
 
                     {/* Stats Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -54,13 +58,14 @@ export default function ProfilePage() {
                             <p className="text-2xl font-bold text-emerald-500 mt-1">{user?.stats?.wins || 0}</p>
                         </div>
                         <div className="bg-ui-surface border border-ui-border rounded-lg p-4 text-center">
-                            <p className="text-ui-secondary text-sm">Global Rank</p>
-                            <p className="text-2xl font-bold text-ui-accent mt-1">#{user?.stats?.rank || "N/A"}</p>
+                            <p className="text-ui-secondary text-sm">Losses</p>
+                            <p className="text-2xl font-bold text-rose-500 mt-1">{user?.stats?.losses || 0}</p>
                         </div>
                     </div>
 
-                    {/* Match History */}
                     <GameHistory/>
+
+                    {/* Friends Tab */}
 
                     {/* Settings / System Info */}
                     <div className="bg-ui-surface border border-ui-border rounded-xl p-6 shadow-md">
@@ -69,12 +74,23 @@ export default function ProfilePage() {
                         </h2>
 
                         <div className="space-y-4">
-                            <div className="flex justify-between items-center py-2 border-b border-ui-subtle">
+                            <div className="flex justify-between items-center py-2 border-ui-border border-b">
                                 <span className="text-ui-secondary">Account ID</span>
                                 <span className="text-ui-primary text-sm font-mono">{user?.id || "N/A"}</span>
                             </div>
-                            <div className="flex justify-between items-center py-2">
-                                <span className="text-ui-secondary">Real-Time Socket</span>
+
+                            <div className="flex justify-between items-center py-2 border-ui-border border-b">
+                                <p className="text-ui-secondary">
+                                    Email
+                                </p>
+
+                                <p className={user.is_activated ? "text-emerald-500" : "text-rose-500"}>
+                                    {user.is_activated ? "Verified" : "Not verified"}
+                                </p>
+                            </div>
+
+                            <div className="flex justify-between items-center py-2 border-ui-border border-b">
+                                <span className="text-ui-secondary">Online Status</span>
                                 <span className="flex items-center gap-2 text-sm font-medium">
                                 <span className={`w-2.5 h-2.5 rounded-full ${isConnected ? "bg-emerald-500 animate-pulse" : "bg-rose-500"}`} />
                                 <span className={isConnected ? "text-emerald-500" : "text-rose-500"}>
@@ -82,9 +98,16 @@ export default function ProfilePage() {
                                 </span>
                             </span>
                             </div>
+
+                            <div className="flex py-2 border-b border-ui-subtle">
+                                <button className="bg-rose-500 text-ui-contrast hover:opacity-90 active:scale-95 px-4 py-2 rounded-lg font-medium transition-all shadow-sm cursor-pointer"
+                                    onClick={() => handleLogout()}
+                                >
+                                    Logout
+                                </button>
+                            </div>
                         </div>
                     </div>
-
                 </div>
             </div>
         </MainLayout>

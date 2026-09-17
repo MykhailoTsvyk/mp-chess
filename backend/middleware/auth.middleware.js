@@ -1,3 +1,9 @@
+import {parseCookie} from "cookie";
+import jwt from "jsonwebtoken";
+import UserDto from "../dtos/user.dto.js";
+import userDto from "../dtos/user.dto.js";
+import tokenService from "../services/token.service.js";
+
 // Regex to validate email and username
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const usernameRegex = /^[a-zA-Z0-9_]+$/
@@ -84,13 +90,13 @@ export const validateLogin = (req, res, next) => {
     next()
 }
 
-export const protectedAuthMiddleware =   (req, res, next)=> {
+export const protectedAuthMiddleware = (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
 
         if (!authHeader) {
             return res.status(401).json({
-                message: "Unauthorized"
+                message: "Unauthorized, no auth header was provided"
             });
         }
 
@@ -98,13 +104,12 @@ export const protectedAuthMiddleware =   (req, res, next)=> {
 
         if (!accessToken) {
             return res.status(401).json({
-                message: "Unauthorized"
+                message: "Unauthorized, no access token received from auth header"
             });
         }
 
         const userData = tokenService.validateAccess(accessToken);
-
-        if (userData != null) {
+        if (userData == null) {
             return res.status(401).json({
                 message: "Invalid or expired token"
             });
@@ -115,8 +120,35 @@ export const protectedAuthMiddleware =   (req, res, next)=> {
         next();
 
     } catch (e) {
+        console.log(e)
         return res.status(401).json({
-            message: "Unauthorized"
+            message: e
         });
     }
+};
+
+
+// Websocket Auth middleware
+
+export const socketAuthMiddleware = (socket, next) => {
+    try {
+        const rawCookie = socket.handshake.headers.cookie
+
+        if (!rawCookie){
+            return next(new Error("No token found"))
+        }
+
+        const parsedCookie = parseCookie(rawCookie)
+
+        if (!parsedCookie.refreshToken) {
+            return next(new Error("No token found"))
+        }
+
+        socket.user = new userDto(jwt.verify(parsedCookie.refreshToken, process.env.JWT_REFRESH_SECRET))
+
+    } catch (e) {
+        return next(new Error('Auth error: Invalid or expired refresh token'))
+    }
+
+    next()
 }

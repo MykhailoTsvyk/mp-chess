@@ -80,14 +80,14 @@ export default function Header() {
                     </button>
 
                     {/* User Profile */}
-                    <div className="flex items-center space-x-2 pl-1.5 sm:pl-2 border-l border-ui-subtle cursor-pointer group shrink-0">
-                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-ui-accent text-ui-contrast dark:bg-ui-interactive dark:text-ui-primary flex items-center justify-center font-bold uppercase shadow-sm text-xs sm:text-sm"
-                            onClick={() => navigate("/profile")}
-                        >
-                            {user.username[0]}
+                    <div className="flex items-center space-x-2 pl-1.5 sm:pl-2 border-l border-ui-subtle cursor-pointer group shrink-0"
+                         onClick={() => navigate("/profile")}
+                    >
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-ui-accent text-ui-contrast dark:bg-ui-interactive dark:text-ui-primary flex items-center justify-center font-bold uppercase shadow-sm text-xs sm:text-sm">
+                            {user?.username[0] || "G"}
                         </div>
                         <span className="text-sm font-medium hidden lg:block text-ui-secondary group-hover:text-ui-accent transition-colors">
-                            {user.username}
+                            {user?.username || "Guest"}
                         </span>
                     </div>
 

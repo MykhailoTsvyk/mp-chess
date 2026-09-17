@@ -11,13 +11,14 @@ export default function AuthProvider({children}) {
     const [token, setToken] = useState(() => localStorage.getItem('token'))
 
     // Whenever token state is updated, this var is going to be updated as well
-    const isAuthenticated = Boolean(token)
+    const [isAuthenticated, setIsAuthenticated] = useState(Boolean(token))
 
     const login = ({access, user}) => {
         localStorage.setItem('token', access);
         localStorage.setItem('user', JSON.stringify(user));
         setUser(user)
         setToken(access);
+        setIsAuthenticated(true)
     }
 
     const logout = () => {
@@ -25,6 +26,7 @@ export default function AuthProvider({children}) {
         localStorage.removeItem('user')
         setToken(null);
         setUser(null);
+        setIsAuthenticated(false)
     }
 
     return (
