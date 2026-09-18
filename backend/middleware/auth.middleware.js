@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import UserDto from "../dtos/user.dto.js";
 import userDto from "../dtos/user.dto.js";
 import tokenService from "../services/token.service.js";
+import db from "../db/db.js";
 
 // Regex to validate email and username
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -130,25 +131,41 @@ export const protectedAuthMiddleware = (req, res, next) => {
 
 // Websocket Auth middleware
 
-export const socketAuthMiddleware = (socket, next) => {
+export const socketAuthMiddleware = async (socket, next) => {
     try {
         const rawCookie = socket.handshake.headers.cookie
 
         if (!rawCookie){
-            return next(new Error("No token found"))
+            return next(new Error("No token found!"))
         }
 
         const parsedCookie = parseCookie(rawCookie)
 
+        const verified = jwt.verify(parsedCookie.refreshToken, process.env.JWT_REFRESH_SECRET)
+
         if (!parsedCookie.refreshToken) {
-            return next(new Error("No token found"))
+            return next(new Error("No token found!"))
         }
 
-        socket.user = new userDto(jwt.verify(parsedCookie.refreshToken, process.env.JWT_REFRESH_SECRET))
+        const tokenRecord = await db.query(`SELECT user_id FROM tokens WHERE refresh_token = $1`, [parsedCookie.refreshToken])
 
+        if (!tokenRecord || tokenRecord.length === 0) {
+            return next(new Error("Auth error: No token or session expired!"))
+        }
+
+        const userRecord = await db.query(`SELECT * FROM users WHERE id = $1`, [tokenRecord[0].user_id])
+
+        if (!userRecord || userRecord.length === 0) {
+            return next(new Error("Auth error: User not found!"))
+        }
+
+        if (!userRecord[0].is_activated) {
+            return next(new Error("Auth error: email is not verified"))
+        }
+
+        socket.user = new userDto(userRecord[0])
+        return next()
     } catch (e) {
         return next(new Error('Auth error: Invalid or expired refresh token'))
     }
-
-    next()
 }

@@ -1,16 +1,23 @@
-# React + Vite
+# Real-Time Multiplayer Chess Platform
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A full-stack, real-time chess platform built with Node.js, React, Tailwind CSS v4, PostgreSQL, and Socket.io. Features secure email activation, JWT refresh token rotation, live matchmaking, and ELO ranking calculations.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Authentication & Security**: Email activation route (`/activate/:token`), HTTP-only refresh token rotation, and JWT authentication.
+- **Real-Time Gameplay**: Socket.io middleware with real-time PostgreSQL token verification for socket connections.
+- **Matchmaking & Stats**: Instant player matchmaking, ELO rating updates, and complete game history.
+- **Modern UI**: Tailored with React 18, React Router v7, and Tailwind CSS v4 styling.
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Frontend**: React 18, Vite, React Router v7, Axios, Tailwind CSS v4
+- **Backend**: Node.js, Express, Socket.io, PostgreSQL (`pg-promise`)
+- **Authentication**: JWT, HTTP-Only Cookies, bcrypt
 
-## Expanding the ESLint configuration
+## Getting Started
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Prerequisites
+
+- Node.js (v18+)
+- PostgreSQL database instance that can be recreated from db-schema.sql file

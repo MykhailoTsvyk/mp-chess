@@ -20,7 +20,7 @@ export default function ProfilePage() {
                     {/* Profile Card Header */}
                     <div className="bg-ui-surface border border-ui-border rounded-xl p-6 shadow-md flex flex-col md:flex-row items-center gap-6">
                         <div className="relative">
-                            <div className="w-24 h-24 rounded-full bg-ui-accent text-ui-contrast flex items-center justify-center text-3xl font-bold border-2 border-ui-border">
+                            <div className="w-24 h-24 rounded-full bg-ui-accent text-ui-contrast flex items-center justify-center text-3xl font-bold border-2 border-ui-border cursor-default">
                                 {user.username.substring(0, 2).toUpperCase()}
                             </div>
                             <span
@@ -35,12 +35,16 @@ export default function ProfilePage() {
                             <div className="flex flex-col md:flex-row md:items-center gap-2">
                                 <h1 className="text-2xl font-bold">{user?.username}</h1>
                                 <span className="inline-block bg-ui-interactive text-ui-accent text-xs font-semibold px-2.5 py-1 rounded-full border border-ui-border w-fit mx-auto md:mx-0">
-                                ELO {user?.elo || 1200}
-                            </span>
+                                    ELO {user?.elo || 800}
+                                </span>
                             </div>
+
+                            <p className="text-sm text-ui-secondary cursor-default">
+                                Joined {user?.created_at ? new Date(user.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : ""}
+                            </p>
                         </div>
 
-                        <button className="bg-ui-accent text-ui-contrast hover:opacity-90 active:scale-95 px-4 py-2 rounded-lg font-medium transition-all shadow-sm">
+                        <button className="bg-ui-accent text-ui-contrast hover:opacity-90 active:scale-95 px-4 py-2 rounded-lg font-medium transition-all shadow-sm cursor-pointer">
                             Edit Profile
                         </button>
                     </div>

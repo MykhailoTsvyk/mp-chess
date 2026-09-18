@@ -12,6 +12,7 @@ const SocketContext = createContext(socket)
 export default function SocketProvider({children}) {
     const {isAuthenticated} = useAuth()
     const [isConnected, setIsConnected] = useState(socket.connected)
+    const [socketError, setSocketError] = useState('')
 
     useEffect(() => {
         if (!isAuthenticated) return
@@ -20,15 +21,21 @@ export default function SocketProvider({children}) {
 
         function onConnect(){
             setIsConnected(true)
-            console.log("socket connected", socket.id)
         }
 
         function onDisconnect(){
             setIsConnected(false)
         }
 
+        function onConnectError(err) {
+            console.error("Socket Connection Error:", err.message)
+            setIsConnected(false)
+            setSocketError(err.message)
+        }
+
         socket.on("connect", onConnect)
         socket.on("disconnect", onDisconnect)
+        socket.on("connect_error", onConnectError)
 
         // cleanup to prevent double events
         return () => {
@@ -40,11 +47,10 @@ export default function SocketProvider({children}) {
     }, [isAuthenticated])
 
     return (
-        <SocketContext value={{socket, isConnected}}>
+        <SocketContext value={{socket, isConnected, socketError}}>
             {children}
         </SocketContext>
     )
-
 }
 
 export const useSocket = () => useContext(SocketContext)
