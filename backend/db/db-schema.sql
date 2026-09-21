@@ -37,17 +37,25 @@ CREATE TABLE friendships (
     CONSTRAINT check_not_self CHECK (user_1 <> user_2)
 );
 
-CREATE TYPE match_status AS ENUM ('pending', 'active', 'draw', 'finished', 'aborted')
+CREATE TYPE draw_reason AS ENUM ('stalemate', 'insufficient_material', 'threefold_repetition', 'fifty_move_rule', 'agreement');
+CREATE TYPE match_status AS ENUM ('pending', 'active', 'draw', 'finished', 'aborted');
 -- pending for created match without both players joining it
 -- aborted for cancelled game
 
 CREATE TABLE games (
     id SERIAL PRIMARY KEY,
-    moves VARCHAR(7)[],
-    status match_status DEFAULT 'pending',
-    final_position TEXT DEFAULT 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-    player_1 INT NOT NULL,
-    player_2 INT NOT NULL,
-    CONSTRAINT fk_player_1 FOREIGN KEY (player_1) REFERENCES users(id) ON DELETE CASCADE,
-    CONSTRAINT fk_player_2 FOREIGN KEY (player_2) REFERENCES users(id) ON DELETE CASCADE
+    status match_status NOT NULL DEFAULT 'pending',
+    white_player INT NOT NULL,
+    black_player INT NOT NULL,
+    winner_id INT,
+    draw_reason draw_reason,
+
+    -- Board State
+    moves TEXT[] DEFAULT ARRAY[]::TEXT[],
+    fen TEXT NOT NULL DEFAULT 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+
+    CONSTRAINT fk_white_player FOREIGN KEY (white_player) REFERENCES users(id) ON DELETE SET NULL ,
+    CONSTRAINT fk_black_player FOREIGN KEY (black_player) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT fk_winner FOREIGN KEY (winner_id) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT check_not_self CHECK (white_player <> black_player)
 );
