@@ -54,6 +54,12 @@ CREATE TABLE games (
     moves TEXT[] DEFAULT ARRAY[]::TEXT[],
     fen TEXT NOT NULL DEFAULT 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
 
+    --Time Control
+    initial_time_control INT, -- basic time for each game, e. g. 600 for 10 minute game
+    increment_time_control INT DEFAULT 0,
+    white_time_remaining INT,
+    black_time_remaining INT,
+
     CONSTRAINT fk_white_player FOREIGN KEY (white_player) REFERENCES users(id) ON DELETE SET NULL ,
     CONSTRAINT fk_black_player FOREIGN KEY (black_player) REFERENCES users(id) ON DELETE SET NULL,
     CONSTRAINT fk_winner FOREIGN KEY (winner_id) REFERENCES users(id) ON DELETE SET NULL,
