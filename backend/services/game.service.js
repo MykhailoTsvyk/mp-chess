@@ -1,11 +1,15 @@
+import {Chess} from "chess.js";
+
 class gameService {
 
     // array of user IDs to randomly assign sides
     async start(users) {
-        const whitePlayer = users[Math.floor(Math.random() * 2)]
-        const blackPlayer = users[whitePlayer ? 0 : 1]
+        const pivot = Math.floor(Math.random() * 2)
+        const whitePlayerSocket = users[pivot] // 0 OR 1
+        const blackPlayerSocket = users[pivot ? 0 : 1] // opposite side to white
 
-
+        const chess = new Chess()
+        console.log(chess)
     }
 
     // game should be object with all the info about game
@@ -20,6 +24,12 @@ class gameService {
     // async setDraw(gameID, drawReason){
     //
     // }
+
+    validateMove(move){
+
+    }
+
+
 }
 
 export default new gameService()

@@ -29,7 +29,8 @@ export default function Footer() {
                         Privacy Policy
                     </a>
                     <a
-                        href="#rules"
+                        href="https://en.wikipedia.org/wiki/Rules_of_chess"
+                        target="_blank"
                         className="hover:text-ui-primary transition-colors hidden sm:inline"
                     >
                         Chess Rules
