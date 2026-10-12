@@ -5,11 +5,13 @@ import {useAuth} from "./context/AuthContext.jsx";
 import {useSocket} from "./context/SocketContext.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import ActivationPage from "./pages/ActivationPage.jsx";
+import PageNotFound from "./pages/PageNotFound.jsx";
+import GamePage from "./pages/GamePage.jsx";
 
 function App() {
     const {isAuthenticated} = useAuth()
 
-    const {socket, isConnected} = useSocket()
+    const {socket} = useSocket()
     console.log(socket)
 
   return (
@@ -24,6 +26,12 @@ function App() {
             />
             <Route path="/activation/:token"
                    element={<ActivationPage/>}
+            />
+            <Route path="/game/:gameRoomID"
+                   element={isAuthenticated ? <GamePage/> : <Navigate to="/" replace />}
+            />
+            <Route path="*"
+                    element={<PageNotFound/>}
             />
         </Routes>
       </BrowserRouter>

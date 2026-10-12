@@ -43,7 +43,7 @@ CREATE TYPE match_status AS ENUM ('pending', 'active', 'draw', 'finished', 'abor
 -- aborted for cancelled game
 
 CREATE TABLE games (
-    id SERIAL PRIMARY KEY,
+    id VARCHAR PRIMARY KEY,
     status match_status NOT NULL DEFAULT 'pending',
     white_player INT NOT NULL,
     black_player INT NOT NULL,

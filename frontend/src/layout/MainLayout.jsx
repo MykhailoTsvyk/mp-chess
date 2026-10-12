@@ -8,7 +8,7 @@ export default function MainLayout({children}){
         <div className="w-full min-h-screen bg-ui-main text-ui-primary flex flex-col">
             <Header/>
             <div className="bg-ui-main">
-                <main className="h-auto container m-auto text-ui-primary p-6">
+                <main className="container mx-auto h-auto px-2 py-4 text-ui-primary sm:p-4 md:p-6">
                     {children}
                 </main>
             </div>

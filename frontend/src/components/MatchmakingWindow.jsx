@@ -1,12 +1,14 @@
 import {useEffect, useState} from "react";
 import {useSocket} from "../context/SocketContext.jsx";
 import {useNavigate} from "react-router";
+import {useChess} from "../context/ChessContext.jsx";
 
 export default function MatchmakingWindow({cancelMatchmaking}) {
     const {socket, isConnected} = useSocket()
     const [matchmakingData, setmatchmakingData] = useState('')
     const [isCancelled, setIsCancelled] = useState(false)
     const navigate = useNavigate()
+    const {setGameData} = useChess()
 
     useEffect(() => {
         if (!socket || !isConnected) return
@@ -21,7 +23,9 @@ export default function MatchmakingWindow({cancelMatchmaking}) {
         })
 
         socket.on("matchmaking:matchFound", (data) => {
-            navigate(data.gameRoomID)
+            console.log(data)
+            setGameData(data)
+            navigate(`/game/${data.game.id}`)
         })
 
         socket.on("matchmaking:cancelled", () => setIsCancelled(true))
@@ -70,7 +74,7 @@ export default function MatchmakingWindow({cancelMatchmaking}) {
                 {isCancelled && (
                     <>
                         <h1>Matchmaking cancelled</h1>
-                        <p>Reason: Matchmaking started on another device.</p>
+                        <p>Reason: Matchmaking started on another device or tab.</p>
                         <button className="mt-8 w-full rounded-xl border border-ui-border bg-ui-interactive px-4 py-3 text-sm font-semibold text-ui-primary transition-all hover:border-ui-accent hover:text-ui-accent active:scale-[0.98]"
                                 onClick={() => cancelMatchmaking(false)}
                         >

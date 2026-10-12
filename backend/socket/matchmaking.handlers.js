@@ -1,4 +1,5 @@
 import matchmakingService from "../services/matchmaking.service.js";
+import {gameStore} from "../store/game.store.js";
 
 export const registerMatchmakingHandlers = (io, socket) => {
     socket.on("matchmaking:start", async () => {
@@ -18,11 +19,16 @@ export const registerMatchmakingHandlers = (io, socket) => {
             totalPlayers: io.sockets.adapter.rooms.get("queue")?.size || 0
         })
 
-        const gameData = await matchmakingService.attemptFindMatch(io, socket)
-        console.log(gameData)
+        const gameID = await matchmakingService.attemptFindMatch(io, socket)
+        const entry = gameStore.get(gameID)
 
-        if (gameData?.gameRoomID) {
-            io.to(gameData?.gameRoomID).emit("matchmaking:matchFound", gameData)
+        if (gameID) {
+            console.log(entry.turn)
+            io.to(gameID).emit("matchmaking:matchFound", {
+                game: entry.game,
+                whitePlayer: entry.whitePlayer,
+                blackPlayer: entry.blackPlayer
+            })
         }
         // console.log(io.sockets.adapter.rooms.get(gameData.gameRoomID))
         // console.log(`User id: ${currUserID} (Socket ${socket.id}) is now in the queue.`);
@@ -34,6 +40,6 @@ export const registerMatchmakingHandlers = (io, socket) => {
 
     socket.on("disconnecting", () => {
         socket.leave("queue")
-        console.log("user disconneted, size of queue room: ", io.sockets.adapter.rooms.get("queue")?.size || 0)
+        console.log("user disconnected, size of queue room: ", io.sockets.adapter.rooms.get("queue")?.size || 0)
     })
 }

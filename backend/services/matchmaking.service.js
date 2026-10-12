@@ -16,16 +16,8 @@ class matchmakingService {
         player2.leave("queue")
 
         const gameRoomID = `game_${player1.user.id}_${player2.user.id}_${Date.now()}`
-        player1.join(gameRoomID)
-        player2.join(gameRoomID)
 
-        const game = await gameService.start([player1, player2])
-        // console.log(game)
-
-        return {
-            gameRoomID,
-            //game
-        }
+        return await gameService.start([player1, player2], gameRoomID)
     }
 }
 
