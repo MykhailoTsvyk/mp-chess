@@ -8,7 +8,6 @@ export default function MatchmakingWindow({cancelMatchmaking}) {
     const [matchmakingData, setmatchmakingData] = useState('')
     const [isCancelled, setIsCancelled] = useState(false)
     const navigate = useNavigate()
-    const {setGameData} = useChess()
 
     useEffect(() => {
         if (!socket || !isConnected) return
@@ -24,7 +23,6 @@ export default function MatchmakingWindow({cancelMatchmaking}) {
 
         socket.on("matchmaking:matchFound", (data) => {
             console.log(data)
-            setGameData(data)
             navigate(`/game/${data.game.id}`)
         })
 

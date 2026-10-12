@@ -32,14 +32,15 @@ class gameService {
             game: gameRecord[0],
             whitePlayer: whitePlayerSocket.user,
             blackPlayer: blackPlayerSocket.user,
-            chess: new Chess()
+            chess: new Chess(),
+            messages: []
         })
 
         return gameRecord[0].id
     }
 
     // game should be object with all the info about game
-    async finishGame(game){
+    async finishGame(gameID){
 
     }
 
@@ -55,7 +56,7 @@ class gameService {
             return {success: false, gameOver: true, summary: gameSummary}
         }
 
-        const senderColor = entry.blackPlayer?.id === userID ? "b" : "w"
+        const senderColor = entry.blackPlayer?.id === userID ? "b" : "" || entry.whitePlayer?.id === userID ? "w" : ""
 
         if (senderColor === entry.chess.turn() && entry.chess.moves({verbose: true}).map(m => m.to).includes(to)) {
             entry.chess.move({from: from, to: to})

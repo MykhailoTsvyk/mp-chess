@@ -27,7 +27,7 @@ function App() {
             <Route path="/activation/:token"
                    element={<ActivationPage/>}
             />
-            <Route path="/game/:gameRoomID"
+            <Route path="/game/:gameID"
                    element={isAuthenticated ? <GamePage/> : <Navigate to="/" replace />}
             />
             <Route path="*"
