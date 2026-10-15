@@ -5,6 +5,7 @@ import {useParams} from "react-router";
 import {useChess} from "../context/ChessContext.jsx";
 import {useEffect, useState} from "react";
 import SummaryWindow from "../features/chess/SummaryWindow.jsx";
+import MovesHistory from "../features/chess/MovesHistory.jsx";
 
 export default function GamePage() {
 
@@ -18,9 +19,13 @@ export default function GamePage() {
 
     return (
         <MainLayout>
-            <div className="flex flex-col lg:flex-row gap-4 justify-start w-full lg:items-start">
+            <div className="flex flex-col lg:flex-row gap-4 justify-center w-full max-w-[1100px] mx-auto lg:items-start">
                 <ChessBoard/>
-                {!isReadOnly && <GameChat/>}
+                <div className="flex flex-col gap-4">
+                    <MovesHistory/>
+
+                    {!isReadOnly && <GameChat/>}
+                </div>
 
                 {(!isClosed && isGameOver) && <SummaryWindow setIsClosed={setIsClosed}/>}
             </div>

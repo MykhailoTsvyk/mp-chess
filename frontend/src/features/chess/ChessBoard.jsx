@@ -27,8 +27,8 @@ export default function ChessBoard(){
     const [selectedSquare, setSelectedSquare] = useState('')
     const validMoves = myColor === game.turn() && selectedSquare ? game.moves({ square: selectedSquare.coordinate, verbose: true }).map(m => m.to) : []
 
-    const isBlackPlayer = gameData?.blackPlayer?.id === user.id
-    const [isFlipped, setIsFlipped] = useState(isBlackPlayer) // false if start as white, true if start as black
+    localStorage.setItem("boardFlipped", gameData?.blackPlayer?.id === user.id)
+    const [isFlipped, setIsFlipped] = useState(localStorage.getItem("boardFlipped")) // false if start as white, true if start as black
 
     return (
             <div className="w-full max-w-[560px] lg:max-w-[640px] xl:max-w-[720px] mx-auto">
