@@ -2,13 +2,12 @@ import captureSound from "../../assets/sounds/capture.mp3"
 import castleSound from "../../assets/sounds/castle.mp3"
 import notifySound from "../../assets/sounds/notify.mp3"
 import moveSound from "../../assets/sounds/move-self.mp3"
-import {useEffect, useState} from "react"
+import {useState} from "react"
 import {Chess} from "chess.js"
 import Square from "./Square.jsx"
 import PlayerCard from "./PlayerCard.jsx"
 import flipIconBlack from "../../assets/images/icons/flipIconBlack.svg"
 import flipIconWhite from "../../assets/images/icons/flipIcon.svg"
-import {useSocket} from "../../context/SocketContext.jsx";
 import {useChess} from "../../context/ChessContext.jsx";
 import {useAuth} from "../../context/AuthContext.jsx";
 
@@ -20,32 +19,16 @@ const sounds = {
 }
 
 export default function ChessBoard(){
-    const {socket} = useSocket()
     const {user} = useAuth()
     const columns = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-    const [game, setGame] = useState(() => new Chess())
     const {gameData} = useChess()
+    const game = new Chess(gameData?.game?.fen)
     const myColor = gameData?.blackPlayer?.id === user.id ? "b" : "w"
     const [selectedSquare, setSelectedSquare] = useState('')
     const validMoves = myColor === game.turn() && selectedSquare ? game.moves({ square: selectedSquare.coordinate, verbose: true }).map(m => m.to) : []
 
-    const [isFlipped, setIsFlipped] = useState(myColor !== "w") // false if start as white, true if start as black
-
-    useEffect(() => {
-
-        function handleUpdate(data){
-            setGame(new Chess(data.game.fen))
-        }
-
-        socket.on("game:updated", handleUpdate);
-
-        // Cleanup to prevent duplicate listeners and memory leaks
-        return () => {
-            socket.off("game:updated", handleUpdate);
-            socket.off("connect")
-            socket.off("game:sync-state")
-        };
-    }, [socket])
+    const isBlackPlayer = gameData?.blackPlayer?.id === user.id
+    const [isFlipped, setIsFlipped] = useState(isBlackPlayer) // false if start as white, true if start as black
 
     return (
             <div className="w-full max-w-[560px] lg:max-w-[640px] xl:max-w-[720px] mx-auto">

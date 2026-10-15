@@ -8,6 +8,7 @@ import EmailService from "./services/email.service.js";
 import {socketAuthMiddleware} from "./middleware/auth.middleware.js";
 import {registerSocketHandlers} from "./socket/socket.js";
 import {initTokenCleanupJob} from "./jobs/verificationTokens.job.js";
+import gameRoutes from "./routes/game.routes.js";
 
 const app = express()
 const port = process.env.PORT || 3000
@@ -21,6 +22,7 @@ app.use(cors({
 app.use(express.json())
 app.use(cookieParser())
 app.use("/api", userRoutes)
+app.use("/api", gameRoutes)
 
 await EmailService.verify()
 

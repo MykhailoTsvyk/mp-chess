@@ -39,9 +39,61 @@ class gameService {
         return gameRecord[0].id
     }
 
-    // game should be object with all the info about game
     async finishGame(gameID){
+        const entry = gameStore.get(gameID)
+        if (!entry) return
 
+        const chess = entry.chess
+        entry.game.status = "finished"
+        entry.game.moves = chess.history()
+        entry.game.fen = chess.fen()
+
+        if (chess.isCheckmate()) {
+            const winner = chess.turn() === "w" ? "Black" : "White"
+            entry.game.winner_id = chess.turn() === "w" ? entry.blackPlayer.id : entry.whitePlayer.id
+        } else if (chess.isDraw()) {
+            entry.game.status = "draw"
+
+            if (chess.isStalemate()) {
+                entry.game.draw_reason = "Stalemate"
+            } else if (chess.isInsufficientMaterial()) {
+                entry.game.draw_reason = "Insufficient Material"
+            } else if (chess.isThreefoldRepetition()) {
+                entry.game.draw_reason = "Threefold Repetition"
+            } else if (chess.isDrawByFiftyMoves()) {
+                entry.game.draw_reason = "Draw by 50 moves rule"
+            } else {
+                entry.game.draw_reason = "Mutual Agreement Draw"
+            }
+        }
+
+        const query = `
+        UPDATE games 
+        SET status = $1, 
+            winner_id = $2, 
+            draw_reason = $3, 
+            moves = $4, 
+            fen = $5,
+            white_time_remaining = $6,
+            black_time_remaining = $7
+        WHERE id = $8
+    `
+
+        try {
+            await db.query(query, [
+                entry.game.status,
+                entry.game.winner_id,
+                entry.game.draw_reason,
+                entry.game.moves,
+                entry.game.fen,
+                entry.game.white_time_remaining,
+                entry.game.black_time_remaining,
+                entry.game.id
+            ])
+            console.log(`Game ${entry.game.id} successfully saved to DB.`)
+        } catch (err) {
+            console.error("Failed to save finished game to DB:", err)
+        }
     }
 
     async makeMove(userID, gameID, from, to){
@@ -52,8 +104,8 @@ class gameService {
         }
 
         if (entry.chess.isGameOver()) {
-            const gameSummary = await this.finishGame()
-            return {success: false, gameOver: true, summary: gameSummary}
+            await this.finishGame(gameID)
+            return {success: false, gameOver: true}
         }
 
         const senderColor = entry.blackPlayer?.id === userID ? "b" : "" || entry.whitePlayer?.id === userID ? "w" : ""
@@ -63,13 +115,12 @@ class gameService {
             entry.game.fen = entry.chess.fen()
             entry.game.moves = entry.chess.history()
 
+            if (entry.chess.isGameOver()) {
+                await this.finishGame(gameID)
+            }
+
             return {
-                success: true,
-                gameData: {
-                    game: entry.game,
-                    whitePlayer: entry.whitePlayer,
-                    blackPlayer: entry.blackPlayer
-                }
+                success: true
             }
         } else {
             console.log("failed to move")

@@ -1,11 +1,9 @@
 import userService from "../services/user.service.js";
 import emailService from "../services/email.service.js";
 import jwt from "jsonwebtoken";
-import db from "../db/db.js";
 import tokenService from "../services/token.service.js";
 import userDto from "../dtos/user.dto.js";
 
-// 36:32
 class userController {
     async register(req, res) {
         const {username, email, password} = req.body
