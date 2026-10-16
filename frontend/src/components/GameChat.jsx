@@ -9,22 +9,12 @@ export default function GameChat() {
     const {user} = useAuth()
     const {gameData} = useChess()
     const [messageText, setMessageText] = useState("")
-    const [messages, setMessages] = useState([])
     // const scrollRef = useRef(null)
 
     useEffect(() => {
         // IGNORE FOR NOW: scroll should be changed to scrolltop
         // scrollRef.current?.scrollIntoView({ behavior: "smooth" })
 
-        function handleReceived(messageArr){
-            setMessages(messageArr)
-        }
-
-        socket.on("game:message-received", handleReceived)
-
-        return () => {
-            socket.off("game:message-received", handleReceived);
-        }
     }, [socket])
 
     function handleChange(e) {
@@ -43,7 +33,6 @@ export default function GameChat() {
             role: role
         }
 
-        setMessages(prev => [...prev, newMessage])
         socket.emit("game:sent-message", newMessage)
         setMessageText("")
     }
@@ -53,7 +42,7 @@ export default function GameChat() {
             <div className="p-3 border-b border-ui-border font-bold text-ui-primary shrink-0">Game Chat</div>
 
             <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-2">
-                {messages.map(m => (
+                {gameData?.messages?.map(m => (
                     <ChatMessage message={m} key={`${m.author.id}_${m.timestamp}`} />
                 ))}
 

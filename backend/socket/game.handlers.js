@@ -44,6 +44,11 @@ export const registerGameHandlers = (io,  socket) => {
         const entry = gameStore.get(m.gameID)
         entry?.messages?.push(m)
 
-        io.to(m.gameID).emit("game:message-received", entry?.messages)
+        io.to(m.gameID).emit("game:updated", {
+            game: entry.game,
+            whitePlayer: entry.whitePlayer,
+            blackPlayer: entry.blackPlayer,
+            messages: entry.messages
+        })
     })
 }
