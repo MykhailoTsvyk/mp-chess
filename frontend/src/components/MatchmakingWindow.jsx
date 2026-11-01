@@ -15,22 +15,17 @@ export default function MatchmakingWindow({cancelMatchmaking}) {
         socket.emit("matchmaking:start")
 
         const handleQueued = (data) => setmatchmakingData(data);
+        const handleMatchFound = (data) => navigate(`/game/${data.game.id}`);
         const handleCancelled = () => setIsCancelled(true);
 
-        socket.on("matchmaking:queued", (data) => {
-            setmatchmakingData(data)
-        })
-
-        socket.on("matchmaking:matchFound", (data) => {
-            console.log(data)
-            navigate(`/game/${data.game.id}`)
-        })
-
-        socket.on("matchmaking:cancelled", () => setIsCancelled(true))
+        socket.on("matchmaking:queued", handleQueued)
+        socket.on("matchmaking:matchFound", handleMatchFound)
+        socket.on("matchmaking:cancelled", handleCancelled)
 
         // clean up to tell server stop matchmaking process
         return () => {
             socket.off("matchmaking:queued", handleQueued);
+            socket.off("matchmaking:matchFound", handleMatchFound);
             socket.off("matchmaking:cancelled", handleCancelled);
 
             socket.emit("matchmaking:cancel")

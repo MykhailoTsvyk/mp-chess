@@ -41,6 +41,7 @@ export default function SocketProvider({children}) {
         return () => {
             socket.off("connect", onConnect)
             socket.off("disconnect", onDisconnect)
+            socket.off("connect_error", onConnectError)
             socket.disconnect()
         }
 

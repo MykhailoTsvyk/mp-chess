@@ -23,13 +23,19 @@ export default function ChessBoard(){
     const columns = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
     const {gameData} = useChess()
     const game = new Chess(gameData?.game?.fen)
-    const myColor = gameData?.blackPlayer?.id === user.id ? "b" : "w"
+    const board = game.board().reverse() // rank 1 first
+
+    // null for spectators
+    let myColor = null
+    if (gameData?.whitePlayer?.id === user.id) myColor = "w"
+    if (gameData?.blackPlayer?.id === user.id) myColor = "b"
+
     const [selectedSquare, setSelectedSquare] = useState('')
     const validMoves = myColor === game.turn() && selectedSquare ? game.moves({ square: selectedSquare.coordinate, verbose: true }).map(m => m.to) : []
 
-    // Rework needed
-    localStorage.setItem("boardFlipped", gameData?.blackPlayer?.id === user.id)
-    const [isFlipped, setIsFlipped] = useState(localStorage.getItem("boardFlipped")) // false if start as white, true if start as black
+    // black sees the board from their side by default; the flip button toggles it
+    const [flipToggled, setFlipToggled] = useState(false)
+    const isFlipped = (myColor === "b") !== flipToggled
 
     return (
             <div className="w-full max-w-[560px] lg:max-w-[640px] xl:max-w-[720px] mx-auto">
@@ -41,13 +47,14 @@ export default function ChessBoard(){
                     <div className={`flex ${isFlipped ? "flex-col" : "flex-col-reverse"}`}>
                         {
                             [...Array(8)].map((row, rowIndex) => (
-                                <div className={`flex`}>
+                                <div className={`flex`} key={rowIndex}>
                                     {
                                         columns.map((col, colIndex) => {
-                                            const piece = game.board().reverse()[rowIndex][colIndex]
+                                            const piece = board[rowIndex][colIndex]
 
                                             return (
-                                                <Square isLight={(rowIndex + colIndex) % 2 === 0}
+                                                <Square key={col}
+                                                        isLight={(rowIndex + colIndex) % 2 === 0}
                                                         coordinate={`${col + (rowIndex + 1)}`}
                                                         piece={piece ? piece : null}
                                                         selectedSquare={selectedSquare}
@@ -74,7 +81,7 @@ export default function ChessBoard(){
                     {/* Flip board */}
                     <button
                         className="flex items-center justify-center rounded-md bg-ui-main p-2 text-ui-primary transition-opacity hover:opacity-80"
-                        onClick={() => setIsFlipped(!isFlipped)}
+                        onClick={() => setFlipToggled(!flipToggled)}
                         aria-label="Flip board"
                     >
                         <img src={localStorage.getItem("theme") === "dark" ? flipIconWhite : flipIconBlack} alt="" className="h-4 w-4 sm:h-5 sm:w-5 object-contain"/>

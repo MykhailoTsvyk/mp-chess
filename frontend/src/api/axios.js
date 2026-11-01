@@ -8,14 +8,9 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem('token');
 
-    console.log("TOKEN FROM LOCAL STORAGE:", token);
-    console.log("REQUEST URL:", config.url);
-
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
-
-    console.log("AUTH HEADER:", config.headers.Authorization);
 
     return config;
 });
@@ -38,8 +33,6 @@ api.interceptors.response.use(
                     {},
                     { withCredentials: true }
                 )
-
-                console.log("REFRESH RESPONSE:", response.data)
 
                 const newAccessToken = response.data.access
                 const newUser = response.data.user
@@ -68,7 +61,7 @@ api.interceptors.response.use(
                 console.error("Refresh failed:", refreshError)
 
                 localStorage.removeItem('token')
-                window.location.href = '/login'
+                window.location.href = '/authentication'
 
                 return Promise.reject(refreshError)
             }

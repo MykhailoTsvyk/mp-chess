@@ -4,13 +4,24 @@ import api from "../api/axios.js"
 
 const ChessContext = createContext()
 
+const FINISHED_STATUSES = ["finished", "draw", "aborted"]
+
 export default function ChessProvider({ children }) {
     const [gameID, setGameID] = useState(null)
     const { socket } = useSocket()
     const [gameData, setGameData] = useState(null)
     const [isReadOnly, setIsReadOnly] = useState(false)
 
-    const isGameOver = gameData?.game?.winner_id || gameData?.game?.draw_reason
+    const [loadedGameID, setLoadedGameID] = useState(gameID)
+
+    // clear the previous game while the new one loads
+    if (gameID !== loadedGameID) {
+        setLoadedGameID(gameID)
+        setGameData(null)
+        setIsReadOnly(false)
+    }
+
+    const isGameOver = FINISHED_STATUSES.includes(gameData?.game?.status)
 
     useEffect(() => {
         if (!gameID || gameID === "undefined") return
@@ -18,12 +29,8 @@ export default function ChessProvider({ children }) {
         async function fetchGame() {
             try {
                 const res = await api.get(`/game/${gameID}`)
-                console.log("Fetched game data:", res.data)
 
-                if (res.data.game.status === "finished") {
-                    setIsReadOnly(true)
-                }
-
+                setIsReadOnly(FINISHED_STATUSES.includes(res.data.game.status))
                 setGameData(res.data)
             } catch (e) {
                 console.error("Failed to fetch game:", e)
@@ -41,20 +48,19 @@ export default function ChessProvider({ children }) {
             socket.emit("game:sync-state", gameID)
         }
 
+        function onGameUpdated(serverData) {
+            setGameData(serverData)
+        }
+
         requestSync()
 
-        socket.on("connect", () => {
-            requestSync()
-        })
-
-        socket.on("game:updated", (serverData) => {
-            console.log("serverdata via socket", serverData)
-            setGameData(serverData)
-        })
+        // named handlers so cleanup doesn't remove other components' listeners
+        socket.on("connect", requestSync)
+        socket.on("game:updated", onGameUpdated)
 
         return () => {
-            socket.off("connect")
-            socket.off("game:updated")
+            socket.off("connect", requestSync)
+            socket.off("game:updated", onGameUpdated)
         }
     }, [socket, gameID, isReadOnly])
 

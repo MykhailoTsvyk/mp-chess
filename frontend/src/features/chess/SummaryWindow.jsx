@@ -1,9 +1,19 @@
 import {useChess} from "../../context/ChessContext.jsx";
+import {useNavigate} from "react-router";
 
+const drawReasonLabels = {
+    stalemate: "by stalemate",
+    insufficient_material: "by insufficient material",
+    threefold_repetition: "by threefold repetition",
+    fifty_move_rule: "by the 50-move rule",
+    agreement: "by agreement"
+}
 
 export default function SummaryWindow({setIsClosed}) {
     const {gameData} = useChess()
-    let winner = gameData?.game?.winner_id === gameData?.whitePlayer ? gameData?.whitePlayer?.username : gameData?.blackPlayer?.username
+    const navigate = useNavigate()
+    const winnerID = gameData?.game?.winner_id
+    const winner = winnerID === gameData?.whitePlayer?.id ? gameData?.whitePlayer?.username : gameData?.blackPlayer?.username
 
     return (
         <div className="fixed inset-0 z-99 flex items-center justify-center p-4">
@@ -24,17 +34,18 @@ export default function SummaryWindow({setIsClosed}) {
                     Summary
                 </h1>
 
-                {gameData?.game?.winner_id !== null ? (
+                {winnerID != null ? (
                     <p className="mt-2 text-sm text-ui-secondary">
                         <span>{winner}</span> won!
                     </p>
                 ) : (
                     <p className="mt-2 text-sm text-ui-secondary">
-                        Draw {gameData?.game?.draw_reason}
+                        Draw {drawReasonLabels[gameData?.game?.draw_reason] || ""}
                     </p>
                 )}
 
-                <button className="mt-8 w-full rounded-xl border border-ui-border bg-ui-interactive px-4 py-3 text-sm font-semibold text-ui-primary transition-all hover:border-ui-accent hover:text-ui-accent active:scale-[0.98]">
+                <button onClick={() => navigate("/")}
+                        className="mt-8 w-full rounded-xl border border-ui-border bg-ui-interactive px-4 py-3 text-sm font-semibold text-ui-primary transition-all hover:border-ui-accent hover:text-ui-accent active:scale-[0.98]">
                     Go to Home
                 </button>
             </div>

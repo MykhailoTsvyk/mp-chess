@@ -28,6 +28,7 @@ export default function Square({isLight, piece= null, coordinate, selectedSquare
     function handleSelectedSquare() {
         if (validMoves.includes(coordinate)) {
             socket.emit("game:move", roomID, selectedSquare.coordinate, coordinate)
+            setSelectedSquare('')
         } else {
             setSelectedSquare(piece ? { piece, coordinate } : { coordinate })
         }
