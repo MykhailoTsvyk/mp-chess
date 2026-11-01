@@ -1,5 +1,5 @@
 import db from "../db/db.js";
-import userDto from "../dtos/user.dto.js";
+import PlayerDto from "../dtos/player.dto.js";
 
 
 class gameController {
@@ -7,23 +7,24 @@ class gameController {
         const {gameID} = req.params
 
         try {
-            const gameRecord = await db.query(`SELECT * FROM games WHERE id = $1`, [gameID])
-            const whitePlayerRecord = await db.query(`SELECT * FROM users WHERE id = $1`, [gameRecord[0].white_player])
-            const blackPlayerRecord = await db.query(`SELECT * FROM users WHERE id = $1`, [gameRecord[0].black_player])
+            const gameRecord = await db.oneOrNone(`SELECT * FROM games WHERE id = $1`, [gameID])
 
-            if (!gameRecord[0]) {
-                res.status(404).json({error: "game not found with such id"})
+            if (!gameRecord) {
+                return res.status(404).json({error: "game not found with such id"})
             }
 
-            res.status(200).json({
-                game: gameRecord[0],
-                whitePlayer: new userDto(whitePlayerRecord[0]),
-                blackPlayer: new userDto(blackPlayerRecord[0])
+            // players can be NULL if their account was deleted
+            const whitePlayerRecord = await db.oneOrNone(`SELECT * FROM users WHERE id = $1`, [gameRecord.white_player])
+            const blackPlayerRecord = await db.oneOrNone(`SELECT * FROM users WHERE id = $1`, [gameRecord.black_player])
+
+            return res.status(200).json({
+                game: gameRecord,
+                whitePlayer: whitePlayerRecord ? new PlayerDto(whitePlayerRecord) : null,
+                blackPlayer: blackPlayerRecord ? new PlayerDto(blackPlayerRecord) : null
             })
-
-
         } catch (e) {
-            res.status(500).json({error: "Internal server error"})
+            console.error("Failed to fetch game:", e)
+            return res.status(500).json({error: "Internal server error"})
         }
     }
 }

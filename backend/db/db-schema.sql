@@ -6,7 +6,7 @@ CREATE TABLE users(
     password VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     elo INT NOT NULL DEFAULT 800
-)
+);
 
 CREATE TABLE activation_tokens(
     ID SERIAL PRIMARY KEY,
@@ -15,7 +15,7 @@ CREATE TABLE activation_tokens(
     token VARCHAR(64) UNIQUE NOT NULL,
     expires_at TIMESTAMP NOT NULL DEFAULT (CURRENT_TIMESTAMP + INTERVAL '1 hour'),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)
+);
 
 CREATE TABLE tokens(
     ID SERIAL PRIMARY KEY,
@@ -45,8 +45,8 @@ CREATE TYPE match_status AS ENUM ('pending', 'active', 'draw', 'finished', 'abor
 CREATE TABLE games (
     id VARCHAR PRIMARY KEY,
     status match_status NOT NULL DEFAULT 'pending',
-    white_player INT NOT NULL,
-    black_player INT NOT NULL,
+    white_player INT, -- NULL if the account was deleted
+    black_player INT,
     winner_id INT,
     draw_reason draw_reason,
 
@@ -57,10 +57,10 @@ CREATE TABLE games (
     --Time Control
     initial_time_control INT DEFAULT 1200, -- basic time for each game, e. g. 600 for 10 minute game
     increment_time_control INT DEFAULT 0,
-    white_time_remaining INT DEFAULT 600,
-    black_time_remaining INT DEFAULT 600,
+    white_time_remaining INT DEFAULT 1200,
+    black_time_remaining INT DEFAULT 1200,
 
-    CONSTRAINT fk_white_player FOREIGN KEY (white_player) REFERENCES users(id) ON DELETE SET NULL ,
+    CONSTRAINT fk_white_player FOREIGN KEY (white_player) REFERENCES users(id) ON DELETE SET NULL,
     CONSTRAINT fk_black_player FOREIGN KEY (black_player) REFERENCES users(id) ON DELETE SET NULL,
     CONSTRAINT fk_winner FOREIGN KEY (winner_id) REFERENCES users(id) ON DELETE SET NULL,
     CONSTRAINT check_not_self CHECK (white_player <> black_player)

@@ -1,6 +1,5 @@
 import userService from "../services/user.service.js";
 import emailService from "../services/email.service.js";
-import jwt from "jsonwebtoken";
 import tokenService from "../services/token.service.js";
 import userDto from "../dtos/user.dto.js";
 
@@ -55,7 +54,7 @@ class userController {
 
             res.cookie("refreshToken", tokens.refresh, {
                 httpOnly: true,
-                maxAge: 30 * 24 * 60 * 60 * 1000,
+                maxAge: 14 * 24 * 60 * 60 * 1000,
             })
 
             return res.json({
@@ -75,11 +74,10 @@ class userController {
 
     async resendActivation(req, res){
         try {
-            console.log(req.user)
-            const user = jwt.decode(req.cookies.refreshToken, process.env.JWT_REFRESH_SECRET)
+            // req.user is the verified access token payload set by protectedAuthMiddleware
+            const user = req.user
             const activationLink = await userService.generateActivationLink(user.id)
             await emailService.sendActivationEmail(new userDto(user), activationLink)
-            console.log(activationLink)
             return res.status(200).json({
                 message: "Link was sent to the email!"
             })
@@ -99,22 +97,23 @@ class userController {
             res.json({access: tokens.access, user: tokens.user})
         } catch (e) {
             res.status(401).json({
-                message: e
+                message: e.message
             })
         }
 
     }
 
+    // TO DO: implement; respond so requests don't hang until then
     async getOneUser(req, res) {
-
+        res.status(501).json({message: "Not implemented"})
     }
 
     async updateUser(req, res) {
-
+        res.status(501).json({message: "Not implemented"})
     }
 
     async deleteUser(req, res) {
-
+        res.status(501).json({message: "Not implemented"})
     }
 
 }

@@ -1,6 +1,7 @@
 import {Chess} from "chess.js";
 import db from "../db/db.js";
 import {gameStore} from "../store/game.store.js";
+import PlayerDto from "../dtos/player.dto.js";
 
 class gameService {
 
@@ -9,7 +10,6 @@ class gameService {
         const pivot = Math.floor(Math.random() * 2)
         const whitePlayerSocket = users[pivot] // 0 OR 1
         const blackPlayerSocket = users[pivot ? 0 : 1] // opposite side to white
-        console.log(whitePlayerSocket)
 
         const gameRecord = await db.query(`
             INSERT INTO games (
@@ -17,26 +17,33 @@ class gameService {
                 white_player,
                 black_player,
                 status
-            ) 
+            )
             VALUES ($1, $2, $3, 'active')
              RETURNING *`,
             [gameRoomID, whitePlayerSocket.user.id, blackPlayerSocket.user.id])
-        console.log(gameRecord[0])
 
-        if (gameRecord !== null) {
-            users[0].join(gameRoomID)
-            users[1].join(gameRoomID)
-        }
+        users[0].join(gameRoomID)
+        users[1].join(gameRoomID)
 
         gameStore.set(gameRoomID, {
             game: gameRecord[0],
-            whitePlayer: whitePlayerSocket.user,
-            blackPlayer: blackPlayerSocket.user,
+            whitePlayer: new PlayerDto(whitePlayerSocket.user),
+            blackPlayer: new PlayerDto(blackPlayerSocket.user),
             chess: new Chess(),
             messages: []
         })
 
         return gameRecord[0].id
+    }
+
+    // shape of the game state that is sent to clients
+    serialize(entry) {
+        return {
+            game: entry.game,
+            whitePlayer: entry.whitePlayer,
+            blackPlayer: entry.blackPlayer,
+            messages: entry.messages
+        }
     }
 
     async finishGame(gameID){
@@ -48,31 +55,29 @@ class gameService {
         entry.game.moves = chess.history()
         entry.game.fen = chess.fen()
 
+        // draw_reason values must match the draw_reason enum in db-schema.sql
         if (chess.isCheckmate()) {
-            const winner = chess.turn() === "w" ? "Black" : "White"
             entry.game.winner_id = chess.turn() === "w" ? entry.blackPlayer.id : entry.whitePlayer.id
         } else if (chess.isDraw()) {
             entry.game.status = "draw"
 
             if (chess.isStalemate()) {
-                entry.game.draw_reason = "Stalemate"
+                entry.game.draw_reason = "stalemate"
             } else if (chess.isInsufficientMaterial()) {
-                entry.game.draw_reason = "Insufficient Material"
+                entry.game.draw_reason = "insufficient_material"
             } else if (chess.isThreefoldRepetition()) {
-                entry.game.draw_reason = "Threefold Repetition"
+                entry.game.draw_reason = "threefold_repetition"
             } else if (chess.isDrawByFiftyMoves()) {
-                entry.game.draw_reason = "Draw by 50 moves rule"
-            } else {
-                entry.game.draw_reason = "Mutual Agreement Draw"
+                entry.game.draw_reason = "fifty_move_rule"
             }
         }
 
         const query = `
-        UPDATE games 
-        SET status = $1, 
-            winner_id = $2, 
-            draw_reason = $3, 
-            moves = $4, 
+        UPDATE games
+        SET status = $1,
+            winner_id = $2,
+            draw_reason = $3,
+            moves = $4,
             fen = $5,
             white_time_remaining = $6,
             black_time_remaining = $7
@@ -94,40 +99,49 @@ class gameService {
         } catch (err) {
             console.error("Failed to save finished game to DB:", err)
         }
+
+        // finished games are served from the DB from now on
+        gameStore.delete(gameID)
     }
 
-    async makeMove(userID, gameID, from, to){
+    // promotion defaults to a queen until the client has a piece picker
+    async makeMove(userID, gameID, from, to, promotion = "q"){
         const entry = gameStore.get(gameID)
 
         if (!entry) {
             return {success: false}
         }
 
+        let senderColor = null
+        if (entry.whitePlayer.id === userID) senderColor = "w"
+        if (entry.blackPlayer.id === userID) senderColor = "b"
+
+        if (senderColor !== entry.chess.turn()) {
+            return {success: false}
+        }
+
+        const legalMove = entry.chess.moves({square: from, verbose: true})
+            .find(m => m.to === to && (!m.promotion || m.promotion === promotion))
+
+        if (!legalMove) {
+            return {success: false}
+        }
+
+        try {
+            entry.chess.move({from, to, promotion: legalMove.promotion})
+        } catch (e) {
+            return {success: false}
+        }
+
+        entry.game.fen = entry.chess.fen()
+        entry.game.moves = entry.chess.history()
+
         if (entry.chess.isGameOver()) {
             await this.finishGame(gameID)
-            return {success: false, gameOver: true}
         }
 
-        const senderColor = entry.blackPlayer?.id === userID ? "b" : "" || entry.whitePlayer?.id === userID ? "w" : ""
-
-        if (senderColor === entry.chess.turn() && entry.chess.moves({verbose: true}).map(m => m.to).includes(to)) {
-            entry.chess.move({from: from, to: to})
-            entry.game.fen = entry.chess.fen()
-            entry.game.moves = entry.chess.history()
-
-            if (entry.chess.isGameOver()) {
-                await this.finishGame(gameID)
-            }
-
-            return {
-                success: true
-            }
-        } else {
-            console.log("failed to move")
-        }
+        return {success: true}
     }
-
-
 }
 
 export default new gameService()

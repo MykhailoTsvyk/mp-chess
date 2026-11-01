@@ -141,11 +141,11 @@ export const socketAuthMiddleware = async (socket, next) => {
 
         const parsedCookie = parseCookie(rawCookie)
 
-        const verified = jwt.verify(parsedCookie.refreshToken, process.env.JWT_REFRESH_SECRET)
-
         if (!parsedCookie.refreshToken) {
             return next(new Error("No token found!"))
         }
+
+        jwt.verify(parsedCookie.refreshToken, process.env.JWT_REFRESH_SECRET)
 
         const tokenRecord = await db.query(`SELECT user_id FROM tokens WHERE refresh_token = $1`, [parsedCookie.refreshToken])
 
