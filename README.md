@@ -149,7 +149,7 @@ All routes are prefixed with `/api`.
 | POST   | `/refresh`            | refresh cookie | Rotate tokens; returns a new access token        |
 | POST   | `/resend-activation`  | Bearer token   | Send a new activation email                     |
 | GET    | `/game/:gameID`       | none           | Get a game and both players                     |
-| GET    | `/user/:id`           | Bearer token   | Get a user (not implemented yet, returns 501)   |
+| GET    | `/user/:id`           | Bearer token   | Get a profile with stats `{ games_played, wins, losses, draws }`; `email` and `is_activated` only on your own profile |
 | PUT    | `/user/:id`           | Bearer token   | Update a user (not implemented yet, returns 501) |
 | DELETE | `/user/:id`           | Bearer token   | Delete a user (not implemented yet, returns 501) |
 

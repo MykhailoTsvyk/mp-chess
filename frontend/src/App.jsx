@@ -24,6 +24,9 @@ function App() {
             <Route path="/profile"
                    element={isAuthenticated ? <ProfilePage/> : <Navigate to="/" replace />}
             />
+            <Route path="/profile/:userID"
+                   element={isAuthenticated ? <ProfilePage/> : <Navigate to="/" replace />}
+            />
             <Route path="/activation/:token"
                    element={<ActivationPage/>}
             />

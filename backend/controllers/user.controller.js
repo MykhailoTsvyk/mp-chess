@@ -103,11 +103,28 @@ class userController {
 
     }
 
-    // TO DO: implement; respond so requests don't hang until then
     async getOneUser(req, res) {
-        res.status(501).json({message: "Not implemented"})
+        const userID = Number(req.params.id)
+
+        if (!Number.isInteger(userID)) {
+            return res.status(400).json({message: "Invalid user id"})
+        }
+
+        try {
+            const profile = await userService.getProfile(userID, req.user.id)
+
+            if (!profile) {
+                return res.status(404).json({message: "User not found"})
+            }
+
+            return res.json(profile)
+        } catch (e) {
+            console.log(e)
+            return res.status(500).json({message: "Internal server error"})
+        }
     }
 
+    // TO DO: implement; respond so requests don't hang until then
     async updateUser(req, res) {
         res.status(501).json({message: "Not implemented"})
     }

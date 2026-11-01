@@ -97,6 +97,46 @@ class userService {
         }
     }
 
+    // public profile with game stats; email and activation status only for the owner
+    async getProfile(userID, viewerID) {
+        // stats are counted in the DB, so no games are sent over the wire
+        const profile = await db.oneOrNone(`
+            SELECT u.id, u.username, u.email, u.is_activated, u.elo, u.created_at,
+                   s.games_played, s.wins, s.losses, s.draws
+            FROM users u
+            CROSS JOIN LATERAL (
+                SELECT
+                    COUNT(*)::int AS games_played,
+                    COUNT(*) FILTER (WHERE g.winner_id = u.id)::int AS wins,
+                    COUNT(*) FILTER (WHERE g.status = 'finished' AND g.winner_id IS DISTINCT FROM u.id)::int AS losses,
+                    COUNT(*) FILTER (WHERE g.status = 'draw')::int AS draws
+                FROM games g
+                WHERE (g.white_player = u.id OR g.black_player = u.id)
+                  AND g.status IN ('finished', 'draw')
+            ) s
+            WHERE u.id = $1`, [userID])
+
+        if (!profile) {
+            return null
+        }
+
+        const isOwner = profile.id === viewerID
+
+        return {
+            id: profile.id,
+            username: profile.username,
+            elo: profile.elo,
+            created_at: profile.created_at,
+            stats: {
+                games_played: profile.games_played,
+                wins: profile.wins,
+                losses: profile.losses,
+                draws: profile.draws
+            },
+            ...(isOwner && {email: profile.email, is_activated: profile.is_activated})
+        }
+    }
+
     // ADD check whether user is already activated in order to avoid useless links requesting
     async activate(activationLink) {
         try {
