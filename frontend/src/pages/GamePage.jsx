@@ -15,7 +15,10 @@ export default function GamePage() {
 
     useEffect(() => {
         setGameID(gameID)
-    }, [gameID]);
+
+        // clearing the game on unmount tells the server the player left the game page
+        return () => setGameID(null)
+    }, [gameID, setGameID]);
 
     return (
         <MainLayout>

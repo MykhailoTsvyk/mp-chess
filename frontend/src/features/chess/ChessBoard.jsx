@@ -6,8 +6,7 @@ import {useState} from "react"
 import {Chess} from "chess.js"
 import Square from "./Square.jsx"
 import PlayerCard from "./PlayerCard.jsx"
-import flipIconBlack from "../../assets/images/icons/flipIconBlack.svg"
-import flipIconWhite from "../../assets/images/icons/flipIcon.svg"
+import GameControls from "./GameControls.jsx"
 import {useChess} from "../../context/ChessContext.jsx";
 import {useAuth} from "../../context/AuthContext.jsx";
 
@@ -77,18 +76,7 @@ export default function ChessBoard(){
                 </div>
 
                 {/* Game controls */}
-                <div className="flex">
-                    {/* Flip board */}
-                    <button
-                        className="flex items-center justify-center rounded-md bg-ui-main p-2 text-ui-primary transition-opacity hover:opacity-80"
-                        onClick={() => setFlipToggled(!flipToggled)}
-                        aria-label="Flip board"
-                    >
-                        <img src={localStorage.getItem("theme") === "dark" ? flipIconWhite : flipIconBlack} alt="" className="h-4 w-4 sm:h-5 sm:w-5 object-contain"/>
-                    </button>
-
-                    {/* Suggest draw */}
-                </div>
+                <GameControls onFlip={() => setFlipToggled(!flipToggled)}/>
 
             </div>
     )

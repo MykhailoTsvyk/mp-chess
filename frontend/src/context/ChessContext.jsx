@@ -61,6 +61,9 @@ export default function ChessProvider({ children }) {
         return () => {
             socket.off("connect", requestSync)
             socket.off("game:updated", onGameUpdated)
+
+            // leaving the game page starts the server's leave timeout for players
+            socket.emit("game:leave", gameID)
         }
     }, [socket, gameID, isReadOnly])
 

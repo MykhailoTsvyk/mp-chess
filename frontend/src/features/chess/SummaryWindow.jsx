@@ -34,7 +34,11 @@ export default function SummaryWindow({setIsClosed}) {
                     Summary
                 </h1>
 
-                {winnerID != null ? (
+                {gameData?.game?.status === "aborted" ? (
+                    <p className="mt-2 text-sm text-ui-secondary">
+                        Game aborted
+                    </p>
+                ) : winnerID != null ? (
                     <p className="mt-2 text-sm text-ui-secondary">
                         <span>{winner}</span> won!
                     </p>

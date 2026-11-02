@@ -30,7 +30,10 @@ class gameService {
             whitePlayer: new PlayerDto(whitePlayerSocket.user),
             blackPlayer: new PlayerDto(blackPlayerSocket.user),
             chess: new Chess(),
-            messages: []
+            messages: [],
+            drawOffer: null, // {from: userID} while an offer is pending
+            drawBlocked: new Set(), // players who can't offer again until their next move
+            leaveTimers: new Map() // userID -> {deadline, timer} for players who left
         })
 
         return gameRecord[0].id
@@ -38,39 +41,50 @@ class gameService {
 
     // shape of the game state that is sent to clients
     serialize(entry) {
+        const leftPlayers = {}
+        for (const [userID, {deadline}] of entry.leaveTimers) {
+            leftPlayers[userID] = deadline
+        }
+
         return {
             game: entry.game,
             whitePlayer: entry.whitePlayer,
             blackPlayer: entry.blackPlayer,
-            messages: entry.messages
+            messages: entry.messages,
+            drawOffer: entry.drawOffer,
+            drawBlocked: [...entry.drawBlocked],
+            leftPlayers // userID -> timestamp when the timeout ends the game
         }
     }
 
-    async finishGame(gameID){
+    isPlayer(entry, userID) {
+        return entry.whitePlayer.id === userID || entry.blackPlayer.id === userID
+    }
+
+    getOpponentID(entry, userID) {
+        return entry.whitePlayer.id === userID ? entry.blackPlayer.id : entry.whitePlayer.id
+    }
+
+    // single exit point for every way a game can end
+    async endGame(gameID, {status, winnerID = null, drawReason = null}) {
         const entry = gameStore.get(gameID)
         if (!entry) return
 
-        const chess = entry.chess
-        entry.game.status = "finished"
-        entry.game.moves = chess.history()
-        entry.game.fen = chess.fen()
-
-        // draw_reason values must match the draw_reason enum in db-schema.sql
-        if (chess.isCheckmate()) {
-            entry.game.winner_id = chess.turn() === "w" ? entry.blackPlayer.id : entry.whitePlayer.id
-        } else if (chess.isDraw()) {
-            entry.game.status = "draw"
-
-            if (chess.isStalemate()) {
-                entry.game.draw_reason = "stalemate"
-            } else if (chess.isInsufficientMaterial()) {
-                entry.game.draw_reason = "insufficient_material"
-            } else if (chess.isThreefoldRepetition()) {
-                entry.game.draw_reason = "threefold_repetition"
-            } else if (chess.isDrawByFiftyMoves()) {
-                entry.game.draw_reason = "fifty_move_rule"
-            }
+        for (const {timer} of entry.leaveTimers.values()) {
+            clearTimeout(timer)
         }
+        entry.leaveTimers.clear()
+        entry.drawOffer = null
+
+        entry.game.status = status
+        entry.game.winner_id = winnerID
+        entry.game.draw_reason = drawReason
+        entry.game.moves = entry.chess.history()
+        entry.game.fen = entry.chess.fen()
+
+        // remove before the async save so no other action can end the game twice;
+        // finished games are served from the DB from now on
+        gameStore.delete(gameID)
 
         const query = `
         UPDATE games
@@ -99,9 +113,33 @@ class gameService {
         } catch (err) {
             console.error("Failed to save finished game to DB:", err)
         }
+    }
 
-        // finished games are served from the DB from now on
-        gameStore.delete(gameID)
+    // ends the game based on the board position (checkmate or automatic draw)
+    async finishGame(gameID){
+        const entry = gameStore.get(gameID)
+        if (!entry) return
+
+        const chess = entry.chess
+
+        // draw_reason values must match the draw_reason enum in db-schema.sql
+        if (chess.isCheckmate()) {
+            const winnerID = chess.turn() === "w" ? entry.blackPlayer.id : entry.whitePlayer.id
+            return this.endGame(gameID, {status: "finished", winnerID})
+        }
+
+        let drawReason = null
+        if (chess.isStalemate()) {
+            drawReason = "stalemate"
+        } else if (chess.isInsufficientMaterial()) {
+            drawReason = "insufficient_material"
+        } else if (chess.isThreefoldRepetition()) {
+            drawReason = "threefold_repetition"
+        } else if (chess.isDrawByFiftyMoves()) {
+            drawReason = "fifty_move_rule"
+        }
+
+        return this.endGame(gameID, {status: "draw", drawReason})
     }
 
     // promotion defaults to a queen until the client has a piece picker
@@ -136,11 +174,103 @@ class gameService {
         entry.game.fen = entry.chess.fen()
         entry.game.moves = entry.chess.history()
 
+        // a move cancels the mover's own draw offer and lets them offer again
+        if (entry.drawOffer?.from === userID) {
+            entry.drawOffer = null
+        }
+        entry.drawBlocked.delete(userID)
+
         if (entry.chess.isGameOver()) {
             await this.finishGame(gameID)
         }
 
         return {success: true}
+    }
+
+    async resign(userID, gameID) {
+        const entry = gameStore.get(gameID)
+        if (!entry || !this.isPlayer(entry, userID)) {
+            return {success: false}
+        }
+
+        await this.endGame(gameID, {status: "finished", winnerID: this.getOpponentID(entry, userID)})
+        return {success: true}
+    }
+
+    async offerDraw(userID, gameID) {
+        const entry = gameStore.get(gameID)
+        if (!entry || !this.isPlayer(entry, userID)) {
+            return {success: false}
+        }
+
+        // offering while the opponent's offer is pending accepts it
+        if (entry.drawOffer && entry.drawOffer.from !== userID) {
+            await this.endGame(gameID, {status: "draw", drawReason: "agreement"})
+            return {success: true}
+        }
+
+        if (entry.drawOffer || entry.drawBlocked.has(userID)) {
+            return {success: false}
+        }
+
+        entry.drawOffer = {from: userID}
+        return {success: true}
+    }
+
+    async respondDraw(userID, gameID, accept) {
+        const entry = gameStore.get(gameID)
+        if (!entry || !this.isPlayer(entry, userID)) {
+            return {success: false}
+        }
+
+        // only the opponent of whoever offered can answer
+        if (!entry.drawOffer || entry.drawOffer.from === userID) {
+            return {success: false}
+        }
+
+        if (accept) {
+            await this.endGame(gameID, {status: "draw", drawReason: "agreement"})
+        } else {
+            entry.drawBlocked.add(entry.drawOffer.from)
+            entry.drawOffer = null
+        }
+
+        return {success: true}
+    }
+
+    startLeaveTimer(gameID, userID, timeoutMs, onTimeout) {
+        const entry = gameStore.get(gameID)
+        if (!entry || entry.leaveTimers.has(userID)) return false
+
+        const timer = setTimeout(onTimeout, timeoutMs)
+        entry.leaveTimers.set(userID, {deadline: Date.now() + timeoutMs, timer})
+        return true
+    }
+
+    cancelLeaveTimer(gameID, userID) {
+        const entry = gameStore.get(gameID)
+        const leave = entry?.leaveTimers.get(userID)
+        if (!leave) return false
+
+        clearTimeout(leave.timer)
+        entry.leaveTimers.delete(userID)
+        return true
+    }
+
+    // called when a player's leave timer runs out
+    async resolveAbandonment(gameID, leaverID, isOpponentPresent) {
+        const entry = gameStore.get(gameID)
+        if (!entry) return
+
+        if (entry.chess.history().length === 0) {
+            return this.endGame(gameID, {status: "aborted"})
+        }
+
+        if (!isOpponentPresent) {
+            return this.endGame(gameID, {status: "draw"})
+        }
+
+        return this.endGame(gameID, {status: "finished", winnerID: this.getOpponentID(entry, leaverID)})
     }
 }
 

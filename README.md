@@ -11,10 +11,12 @@ A full-stack, real-time chess platform built with React, Node.js/Express, Postgr
 - **Authenticated WebSockets**: the Socket.io middleware checks the refresh-token cookie against the database and only accepts users who have verified their email.
 - **Matchmaking**: a queue-based system that pairs two waiting players into a private game room. If the same user queues from several tabs, only the newest connection stays in the queue.
 - **Live gameplay**: moves are validated on the server with `chess.js` and sent to everyone in the game room. Checkmate and draws (stalemate, insufficient material, threefold repetition, 50-move rule) end the game and save it to the database.
+- **Resign and draw offers**: a player can resign (after confirming) or offer a draw. The opponent accepts or declines. An offer is cancelled when the player who made it moves, and after a decline that player can offer again only after their next move.
+- **Leaving a game**: if a player disconnects or leaves the game page, they have 60 seconds to return, and their opponent sees a countdown. When time runs out, the player who left loses. If both players are gone, the game is a draw. If no moves were made, the game is aborted.
 - **Reconnect and spectating**: after a page reload, the client asks the server for the current game state. Other users can open `/game/:gameID` to watch a game live.
 - **In-game chat**: chat in the game room, with each message labelled White, Black or Spectator.
 - **Game page UI**: move history, a board flip button, a result summary and read-only replay of finished games.
-- **Planned**: time controls, ELO calculation, game history, friends, draw offers and choosing a promotion piece (pawns currently always promote to a queen).
+- **Planned**: time controls, ELO calculation, game history, friends and choosing a promotion piece (pawns currently always promote to a queen).
 
 ## Tech Stack
 
@@ -168,8 +170,12 @@ Socket connections are authenticated with the `refreshToken` cookie, so the clie
 | server → client | `matchmaking:cancelled`  | none (you queued from another tab) |
 | client → server | `game:sync-state`        | `gameID`: joins the room as a player or spectator |
 | client → server | `game:move`              | `gameID, from, to, promotion?` (e.g. `"e2", "e4"`; promotion defaults to `"q"`) |
+| client → server | `game:resign`            | `gameID` |
+| client → server | `game:offer-draw`        | `gameID` (offering while the opponent's offer is pending accepts it) |
+| client → server | `game:respond-draw`      | `gameID, accept` (`true` / `false`) |
+| client → server | `game:leave`             | `gameID`: sent when the game page closes; starts the 60s timer for players |
 | client → server | `game:sent-message`      | `{ gameID, text }`: the server adds author, role and timestamp |
-| server → client | `game:updated`           | `{ game, whitePlayer, blackPlayer, messages? }` |
+| server → client | `game:updated`           | `{ game, whitePlayer, blackPlayer, messages, drawOffer, drawBlocked, leftPlayers }` (`leftPlayers` maps a user ID to the time its timeout ends) |
 
 Active games are kept in memory ([backend/store/game.store.js](backend/store/game.store.js)) and written to the `games` table when they start and finish. Games still in progress are lost if the server restarts.
 
