@@ -5,6 +5,30 @@ const api = axios.create({
     withCredentials: true
 });
 
+// gets a new access token using the refreshToken cookie and stores it;
+// used by the 401 interceptor below and by the socket when its session is rejected
+export async function refreshSession() {
+    const response = await axios.post(
+        'http://localhost:3000/api/refresh',
+        {},
+        { withCredentials: true }
+    )
+
+    const {access, user} = response.data
+
+    if (!access) {
+        throw new Error("Refresh endpoint did not return an access token")
+    }
+
+    if (user) {
+        localStorage.setItem('user', JSON.stringify(user))
+    }
+
+    localStorage.setItem('token', access)
+
+    return {access, user}
+}
+
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem('token');
 
@@ -28,26 +52,7 @@ api.interceptors.response.use(
             originalRequest._retry = true
 
             try {
-                const response = await axios.post(
-                    'http://localhost:3000/api/refresh',
-                    {},
-                    { withCredentials: true }
-                )
-
-                const newAccessToken = response.data.access
-                const newUser = response.data.user
-
-                if (!newAccessToken) {
-                    throw new Error(
-                        "Refresh endpoint did not return an access token"
-                    )
-                }
-
-                if (newUser) {
-                    localStorage.setItem('user', JSON.stringify(newUser))
-                }
-
-                localStorage.setItem('token', newAccessToken)
+                const {access: newAccessToken} = await refreshSession()
 
                 originalRequest.headers =
                     originalRequest.headers || {}

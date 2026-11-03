@@ -31,7 +31,7 @@ export default function ActivationPage() {
                 console.log(user)
                 if (accessToken && user) {
                     setStatus('success')
-                    login({accessToken, user})
+                    login({access: accessToken, user})
                 }
             } catch (e) {
                 console.log(e)

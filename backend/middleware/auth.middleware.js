@@ -131,18 +131,26 @@ export const protectedAuthMiddleware = (req, res, next) => {
 
 // Websocket Auth middleware
 
+// err.data reaches the client in "connect_error", so it can tell an expired session
+// (refresh or log out) from an unverified email (ask to verify)
+const socketAuthError = (message, code) => {
+    const error = new Error(message)
+    error.data = {code}
+    return error
+}
+
 export const socketAuthMiddleware = async (socket, next) => {
     try {
         const rawCookie = socket.handshake.headers.cookie
 
         if (!rawCookie){
-            return next(new Error("No token found!"))
+            return next(socketAuthError("No token found!", "SESSION_EXPIRED"))
         }
 
         const parsedCookie = parseCookie(rawCookie)
 
         if (!parsedCookie.refreshToken) {
-            return next(new Error("No token found!"))
+            return next(socketAuthError("No token found!", "SESSION_EXPIRED"))
         }
 
         jwt.verify(parsedCookie.refreshToken, process.env.JWT_REFRESH_SECRET)
@@ -150,22 +158,22 @@ export const socketAuthMiddleware = async (socket, next) => {
         const tokenRecord = await db.query(`SELECT user_id FROM tokens WHERE refresh_token = $1`, [parsedCookie.refreshToken])
 
         if (!tokenRecord || tokenRecord.length === 0) {
-            return next(new Error("Auth error: No token or session expired!"))
+            return next(socketAuthError("Auth error: No token or session expired!", "SESSION_EXPIRED"))
         }
 
         const userRecord = await db.query(`SELECT * FROM users WHERE id = $1`, [tokenRecord[0].user_id])
 
         if (!userRecord || userRecord.length === 0) {
-            return next(new Error("Auth error: User not found!"))
+            return next(socketAuthError("Auth error: User not found!", "SESSION_EXPIRED"))
         }
 
         if (!userRecord[0].is_activated) {
-            return next(new Error("Auth error: email is not verified"))
+            return next(socketAuthError("Auth error: email is not verified", "NOT_VERIFIED"))
         }
 
         socket.user = new userDto(userRecord[0])
         return next()
     } catch (e) {
-        return next(new Error('Auth error: Invalid or expired refresh token'))
+        return next(socketAuthError("Auth error: Invalid or expired refresh token", "SESSION_EXPIRED"))
     }
 }
