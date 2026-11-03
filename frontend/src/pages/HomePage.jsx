@@ -1,15 +1,37 @@
 import MainLayout from "../layout/MainLayout.jsx"
-import { Link } from "react-router"
+import { Link, useNavigate } from "react-router"
 import { useAuth } from "../context/AuthContext.jsx"
 import GameHistory from "../components/GameHistory.jsx";
 import MatchmakingWindow from "../components/MatchmakingWindow.jsx";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import {TIME_CONTROLS, DEFAULT_TIME_CONTROL, formatTimeControl} from "../features/chess/timeControls.js";
+import {pieceImages} from "../features/chess/pieceImages.js";
+import {getActiveGame} from "../api/gameService.js";
 
 export default function HomePage() {
     const {user, isAuthenticated} = useAuth()
+    const navigate = useNavigate()
     const [isMatchmaking, setIsMatchmaking] = useState(false)
     const [timeControl, setTimeControl] = useState(DEFAULT_TIME_CONTROL)
+    // game in progress for this user: {id, timeControl, color, opponent}, or null
+    const [activeGame, setActiveGame] = useState(null)
+
+    useEffect(() => {
+        if (!isAuthenticated) return
+
+        getActiveGame()
+            .then(setActiveGame)
+            .catch((e) => console.error("Failed to check for an active game:", e))
+    }, [isAuthenticated])
+
+    // a player in a game is sent back to it instead of searching for a new one
+    function handlePlay() {
+        if (activeGame) {
+            navigate(`/game/${activeGame.id}`)
+        } else {
+            setIsMatchmaking(true)
+        }
+    }
 
     if (isAuthenticated) {
         return (
@@ -28,6 +50,32 @@ export default function HomePage() {
                             <span className="text-2xl font-extrabold text-ui-accent">{user?.elo || 1200}</span>
                         </div>
                     </div>
+
+                    {/* Game in progress */}
+                    {activeGame && (
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-4 rounded-lg border-2 border-ui-accent bg-ui-surface p-5 shadow-md">
+                            <div className="flex h-14 w-14 shrink-0 items-center justify-center self-center rounded-md border-2 border-slate-400 bg-slate-200 p-1">
+                                <img src={pieceImages[`${activeGame.color}p`]} alt={activeGame.color === "w" ? "White" : "Black"} className="h-full w-full object-contain"/>
+                            </div>
+
+                            <div className="flex-1 text-center sm:text-left">
+                                <p className="text-xs font-semibold uppercase tracking-widest text-ui-accent">Game in progress</p>
+                                <p className="mt-1 text-lg font-bold text-ui-primary">
+                                    You vs {activeGame.opponent?.username || "Opponent"}
+                                </p>
+                                <p className="text-sm text-ui-secondary">
+                                    You play {activeGame.color === "w" ? "White" : "Black"} · {formatTimeControl(activeGame.timeControl)}
+                                </p>
+                            </div>
+
+                            <button type="button"
+                                    onClick={() => navigate(`/game/${activeGame.id}`)}
+                                    className="rounded-lg bg-ui-accent px-5 py-2.5 text-sm font-semibold text-ui-contrast shadow-sm transition-opacity hover:opacity-90 active:scale-[0.98] cursor-pointer"
+                            >
+                                Return to game
+                            </button>
+                        </div>
+                    )}
 
                     {/* Play Panel */}
                     <div className="bg-ui-surface border-2 border-ui-border rounded-lg p-8 shadow-md text-center">
@@ -55,7 +103,7 @@ export default function HomePage() {
                         <button
                             type="button"
                             className="bg-ui-accent hover:opacity-90 text-ui-contrast font-bold text-lg px-8 py-4 rounded-lg shadow-lg cursor-pointer transition transform active:scale-95"
-                            onClick={() => setIsMatchmaking(true)}
+                            onClick={handlePlay}
                         >
                             Play Game
                         </button>

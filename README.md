@@ -11,6 +11,7 @@ A full-stack, real-time chess platform built with React, Node.js/Express, Postgr
 - **Authenticated WebSockets**: the Socket.io middleware checks the refresh-token cookie against the database and only accepts users who have verified their email.
 - **Matchmaking**: a queue-based system that pairs two waiting players into a private game room. Players pick a time control (1+0, 3+0, 3+2, 5+0, 10+0, 15+10) and are only matched with players who chose the same one. If the same user queues from several tabs, only the newest connection stays in the queue.
 - **Chess clocks**: each player's clock runs on their turn and gets the increment after each move. The server stores each side's remaining time and when the current turn started, and schedules a single timeout instead of ticking every second. Running out of time loses. Each side must make its first move within 1 minute, otherwise the game is aborted.
+- **One game at a time**: while you're playing, the home page shows a "Game in progress" banner with a button to return, and Play Game takes you back to that game. The server also refuses to queue a player who is already in a live game.
 - **Live gameplay**: moves are validated on the server with `chess.js` and sent to everyone in the game room. Checkmate and draws (stalemate, insufficient material, threefold repetition, 50-move rule) end the game and save it to the database.
 - **Resign and draw offers**: a player can resign (after confirming) or offer a draw. The opponent accepts or declines. An offer is cancelled when the player who made it moves, and after a decline that player can offer again only after their next move.
 - **Leaving a game**: if a player disconnects or leaves the game page, they have 60 seconds to return, and their opponent sees a countdown. When time runs out, the player who left loses. If both players are gone, the game is a draw. If no moves were made, the game is aborted.
@@ -153,6 +154,7 @@ All routes are prefixed with `/api`.
 | POST   | `/refresh`            | refresh cookie | Rotate tokens; returns a new access token        |
 | POST   | `/resend-activation`  | Bearer token   | Send a new activation email                     |
 | GET    | `/game/:gameID`       | none           | Get a game and both players                     |
+| GET    | `/active-game`        | Bearer token   | The game you're playing right now: `{ activeGame: { id, timeControl, color, opponent } }`, or `{ activeGame: null }` |
 | GET    | `/user/:id`           | Bearer token   | Get a profile with stats `{ games_played, wins, losses, draws }`; `email` and `is_activated` only on your own profile |
 | PUT    | `/user/:id`           | Bearer token   | Update a user (not implemented yet, returns 501) |
 | DELETE | `/user/:id`           | Bearer token   | Delete a user (not implemented yet, returns 501) |
@@ -170,6 +172,7 @@ Socket connections are authenticated with the `refreshToken` cookie, so the clie
 | server → client | `matchmaking:queued`     | `{ status, totalPlayers }`         |
 | server → client | `matchmaking:matchFound` | `{ game, whitePlayer, blackPlayer }` |
 | server → client | `matchmaking:cancelled`  | none (you queued from another tab) |
+| server → client | `matchmaking:activeGame` | `{ gameID }`: you're already playing, so you're sent back to that game instead of being queued |
 | client → server | `game:sync-state`        | `gameID`: joins the room as a player or spectator |
 | client → server | `game:move`              | `gameID, from, to, promotion?` (e.g. `"e2", "e4"`; `promotion` is `"q"`, `"r"`, `"b"` or `"n"` for a pawn reaching the last rank, defaults to `"q"`) |
 | client → server | `game:resign`            | `gameID` |

@@ -168,6 +168,14 @@ class gameService {
         }
     }
 
+    // the live game this user is playing in (not spectating), or undefined;
+    // live games only exist in memory, so the DB's 'active' rows are not used here
+    findActiveGameForUser(userID) {
+        for (const entry of gameStore.getAll().values()) {
+            if (this.isPlayer(entry, userID)) return entry
+        }
+    }
+
     isPlayer(entry, userID) {
         return entry.whitePlayer.id === userID || entry.blackPlayer.id === userID
     }

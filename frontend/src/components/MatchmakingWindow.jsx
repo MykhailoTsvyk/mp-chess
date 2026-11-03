@@ -16,16 +16,20 @@ export default function MatchmakingWindow({cancelMatchmaking, timeControl}) {
 
         const handleQueued = (data) => setmatchmakingData(data);
         const handleMatchFound = (data) => navigate(`/game/${data.game.id}`);
+        // the server refuses to queue a player who is already in a live game
+        const handleActiveGame = ({gameID}) => navigate(`/game/${gameID}`);
         const handleCancelled = () => setIsCancelled(true);
 
         socket.on("matchmaking:queued", handleQueued)
         socket.on("matchmaking:matchFound", handleMatchFound)
+        socket.on("matchmaking:activeGame", handleActiveGame)
         socket.on("matchmaking:cancelled", handleCancelled)
 
         // clean up to tell server stop matchmaking process
         return () => {
             socket.off("matchmaking:queued", handleQueued);
             socket.off("matchmaking:matchFound", handleMatchFound);
+            socket.off("matchmaking:activeGame", handleActiveGame);
             socket.off("matchmaking:cancelled", handleCancelled);
 
             socket.emit("matchmaking:cancel")

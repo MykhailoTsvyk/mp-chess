@@ -11,6 +11,13 @@ export const registerMatchmakingHandlers = (io, socket) => {
         try {
             if (!TIME_CONTROLS[timeControlID]) return
 
+            // a player already in a live game is sent back to it instead of being queued
+            const activeGame = gameService.findActiveGameForUser(socket.user.id)
+            if (activeGame) {
+                socket.emit("matchmaking:activeGame", {gameID: activeGame.game.id})
+                return
+            }
+
             const currUserID = socket.user.id
             const socketsInQueues = await io.in(ALL_QUEUE_ROOMS).fetchSockets()
 

@@ -1,8 +1,29 @@
 import db from "../db/db.js";
 import PlayerDto from "../dtos/player.dto.js";
+import gameService from "../services/game.service.js";
 
 
 class gameController {
+    // the logged-in user's game in progress, so the home page can offer to return to it
+    async getActiveGame(req, res) {
+        const entry = gameService.findActiveGameForUser(req.user.id)
+
+        if (!entry) {
+            return res.json({activeGame: null})
+        }
+
+        const isWhite = entry.whitePlayer.id === req.user.id
+
+        return res.json({
+            activeGame: {
+                id: entry.game.id,
+                timeControl: entry.timeControl,
+                color: isWhite ? "w" : "b",
+                opponent: isWhite ? entry.blackPlayer : entry.whitePlayer
+            }
+        })
+    }
+
     async getGame(req, res) {
         const {gameID} = req.params
 
