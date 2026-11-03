@@ -11,10 +11,30 @@ const drawReasonLabels = {
     agreement: "by agreement"
 }
 
-// one side of the score row: player name, colour and their points
-function PlayerResult({player, color, points, isWinner}) {
+// "1500 → 1516  +16"; only rated games have an "after" rating
+function RatingChange({before, after}) {
+    if (before == null || after == null) return null
+
+    const diff = after - before
+    let diffClass = "bg-ui-interactive text-ui-secondary"
+    if (diff > 0) diffClass = "bg-emerald-500/15 text-emerald-500"
+    if (diff < 0) diffClass = "bg-rose-500/15 text-rose-500"
+
+    return (
+        <div className="flex flex-col items-center gap-1">
+            <span className="text-xs text-ui-secondary tabular-nums">{before} → {after}</span>
+            <span className={`rounded px-1.5 py-0.5 text-xs font-bold tabular-nums ${diffClass}`}>
+                {diff > 0 ? `+${diff}` : diff === 0 ? "±0" : diff}
+            </span>
+        </div>
+    )
+}
+
+// one side of the score row: rating change, colour, player name and their points
+function PlayerResult({player, color, points, isWinner, ratingBefore, ratingAfter}) {
     return (
         <div className="flex min-w-0 flex-col items-center gap-2">
+            <RatingChange before={ratingBefore} after={ratingAfter}/>
             {/* always light, like the board's light squares, so the black pawn stays visible in dark mode */}
             <div className="flex h-[75px] w-[75px] items-center justify-center rounded-md border-2 border-slate-400 bg-slate-200 p-1.5">
                 <img src={pieceImages[`${color}p`]} alt={color === "w" ? "White" : "Black"} className="h-full w-full object-contain"/>
@@ -47,7 +67,7 @@ export default function SummaryWindow({setIsClosed}) {
 
     if (isAborted) {
         title = "Game aborted"
-        subtitle = "No moves were made, so the game doesn't count"
+        subtitle = "The game ended before both players moved, so it doesn't count"
         whitePoints = "–"
         blackPoints = "–"
     } else if (isWhiteWinner || isBlackWinner) {
@@ -92,7 +112,7 @@ export default function SummaryWindow({setIsClosed}) {
 
                 {/* Result */}
                 <div className="px-6 pb-6 pt-8 text-center">
-                    <p className="text-xs font-semibold uppercase tracking-widest text-ui-secondary">Game over</p>
+                    <p className="text-sm font-semibold text-ui-secondary">Game Over</p>
                     <h1 id="summary-title" className="mt-2 text-2xl font-bold tracking-tight text-ui-primary">
                         {title}
                     </h1>
@@ -101,9 +121,11 @@ export default function SummaryWindow({setIsClosed}) {
 
                 {/* Score */}
                 <div className="mx-6 mb-6 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-                    <PlayerResult player={whitePlayer} color="w" points={whitePoints} isWinner={isWhiteWinner}/>
+                    <PlayerResult player={whitePlayer} color="w" points={whitePoints} isWinner={isWhiteWinner}
+                                  ratingBefore={game?.white_elo_before} ratingAfter={game?.white_elo_after}/>
                     <span className="text-lg font-semibold text-ui-secondary">–</span>
-                    <PlayerResult player={blackPlayer} color="b" points={blackPoints} isWinner={isBlackWinner}/>
+                    <PlayerResult player={blackPlayer} color="b" points={blackPoints} isWinner={isBlackWinner}
+                                  ratingBefore={game?.black_elo_before} ratingAfter={game?.black_elo_after}/>
                 </div>
 
                 {/* Actions */}

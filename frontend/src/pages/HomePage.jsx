@@ -4,7 +4,8 @@ import { useAuth } from "../context/AuthContext.jsx"
 import GameHistory from "../components/GameHistory.jsx";
 import MatchmakingWindow from "../components/MatchmakingWindow.jsx";
 import {useEffect, useState} from "react";
-import {TIME_CONTROLS, DEFAULT_TIME_CONTROL, formatTimeControl} from "../features/chess/timeControls.js";
+import {TIME_CONTROLS, DEFAULT_TIME_CONTROL, RATING_CATEGORIES, formatTimeControl} from "../features/chess/timeControls.js";
+import {getUserProfile} from "../api/userService.js";
 import {pieceImages} from "../features/chess/pieceImages.js";
 import {getActiveGame} from "../api/gameService.js";
 
@@ -16,13 +17,26 @@ export default function HomePage() {
     // game in progress for this user: {id, timeControl, color, opponent}, or null
     const [activeGame, setActiveGame] = useState(null)
 
+    // ratings change after every game, so they're fetched fresh instead of using the stored user
+    const [freshRatings, setFreshRatings] = useState(null)
+    const ratings = freshRatings ?? user?.ratings
+    const selectedCategory = TIME_CONTROLS.find(tc => tc.id === timeControl)?.category.toLowerCase()
+
     useEffect(() => {
         if (!isAuthenticated) return
 
         getActiveGame()
             .then(setActiveGame)
             .catch((e) => console.error("Failed to check for an active game:", e))
-    }, [isAuthenticated])
+
+        getUserProfile(user.id)
+            .then((profile) => setFreshRatings({
+                bullet: profile.ratings.bullet.rating,
+                blitz: profile.ratings.blitz.rating,
+                rapid: profile.ratings.rapid.rating
+            }))
+            .catch((e) => console.error("Failed to load ratings:", e))
+    }, [isAuthenticated, user?.id])
 
     // a player in a game is sent back to it instead of searching for a new one
     function handlePlay() {
@@ -45,9 +59,18 @@ export default function HomePage() {
                             </h1>
                             <p className="text-sm text-ui-secondary">Ready for your next challenge?</p>
                         </div>
-                        <div className="text-center bg-ui-main px-4 py-2 rounded-md border border-ui-border">
-                            <span className="text-xs text-ui-secondary font-bold block">Rating ELO</span>
-                            <span className="text-2xl font-extrabold text-ui-accent">{user?.elo || 1200}</span>
+                        {/* the category of the selected time control is highlighted: that rating is at stake */}
+                        <div className="flex gap-2">
+                            {RATING_CATEGORIES.map(({id, label}) => (
+                                <div key={id}
+                                     className={`min-w-[4.5rem] text-center px-3 py-2 rounded-md border transition-colors ${
+                                         id === selectedCategory ? "border-ui-accent bg-ui-interactive" : "border-ui-border bg-ui-main"
+                                     }`}
+                                >
+                                    <span className="text-xs text-ui-secondary font-bold block">{label}</span>
+                                    <span className="text-xl font-extrabold text-ui-accent tabular-nums">{ratings?.[id] ?? "–"}</span>
+                                </div>
+                            ))}
                         </div>
                     </div>
 

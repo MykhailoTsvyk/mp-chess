@@ -109,15 +109,20 @@ class userService {
     async getProfile(userID, viewerID) {
         // stats are counted in the DB, so no games are sent over the wire
         const profile = await db.oneOrNone(`
-            SELECT u.id, u.username, u.email, u.is_activated, u.elo, u.created_at,
-                   s.games_played, s.wins, s.losses, s.draws
+            SELECT u.id, u.username, u.email, u.is_activated, u.created_at,
+                   u.elo_bullet, u.elo_blitz, u.elo_rapid,
+                   s.games_played, s.wins, s.losses, s.draws,
+                   s.bullet_games, s.blitz_games, s.rapid_games
             FROM users u
             CROSS JOIN LATERAL (
                 SELECT
                     COUNT(*)::int AS games_played,
                     COUNT(*) FILTER (WHERE g.winner_id = u.id)::int AS wins,
                     COUNT(*) FILTER (WHERE g.status = 'finished' AND g.winner_id IS DISTINCT FROM u.id)::int AS losses,
-                    COUNT(*) FILTER (WHERE g.status = 'draw')::int AS draws
+                    COUNT(*) FILTER (WHERE g.status = 'draw')::int AS draws,
+                    COUNT(*) FILTER (WHERE g.rating_category = 'bullet')::int AS bullet_games,
+                    COUNT(*) FILTER (WHERE g.rating_category = 'blitz')::int AS blitz_games,
+                    COUNT(*) FILTER (WHERE g.rating_category = 'rapid')::int AS rapid_games
                 FROM games g
                 WHERE (g.white_player = u.id OR g.black_player = u.id)
                   AND g.status IN ('finished', 'draw')
@@ -133,8 +138,13 @@ class userService {
         return {
             id: profile.id,
             username: profile.username,
-            elo: profile.elo,
             created_at: profile.created_at,
+            // games played per category only counts games that have a category (older games don't)
+            ratings: {
+                bullet: {rating: profile.elo_bullet, games: profile.bullet_games},
+                blitz: {rating: profile.elo_blitz, games: profile.blitz_games},
+                rapid: {rating: profile.elo_rapid, games: profile.rapid_games}
+            },
             stats: {
                 games_played: profile.games_played,
                 wins: profile.wins,

@@ -2,7 +2,8 @@ import {Chess} from "chess.js";
 import db from "../db/db.js";
 import {gameStore} from "../store/game.store.js";
 import PlayerDto from "../dtos/player.dto.js";
-import {TIME_CONTROLS, FIRST_MOVE_TIMEOUT_MS} from "../config/timeControls.js";
+import {TIME_CONTROLS, FIRST_MOVE_TIMEOUT_MS, RATING_COLUMNS} from "../config/timeControls.js";
+import {calculateRatings} from "./elo.service.js";
 
 class gameService {
 
@@ -12,7 +13,14 @@ class gameService {
         const pivot = Math.floor(Math.random() * 2)
         const whitePlayerSocket = users[pivot] // 0 OR 1
         const blackPlayerSocket = users[pivot ? 0 : 1] // opposite side to white
-        const {initialSeconds, incrementSeconds} = TIME_CONTROLS[timeControlID]
+        const {initialSeconds, incrementSeconds, category} = TIME_CONTROLS[timeControlID]
+
+        // ratings are read from the DB, because socket.user is only loaded when the socket
+        // connects and would miss rating changes from earlier games
+        const whiteRecord = await db.one(`SELECT * FROM users WHERE id = $1`, [whitePlayerSocket.user.id])
+        const blackRecord = await db.one(`SELECT * FROM users WHERE id = $1`, [blackPlayerSocket.user.id])
+        const whitePlayer = new PlayerDto(whiteRecord, category)
+        const blackPlayer = new PlayerDto(blackRecord, category)
 
         const gameRecord = await db.query(`
             INSERT INTO games (
@@ -23,19 +31,23 @@ class gameService {
                 initial_time_control,
                 increment_time_control,
                 white_time_remaining,
-                black_time_remaining
+                black_time_remaining,
+                rating_category,
+                white_elo_before,
+                black_elo_before
             )
-            VALUES ($1, $2, $3, 'active', $4, $5, $4, $4)
+            VALUES ($1, $2, $3, 'active', $4, $5, $4, $4, $6, $7, $8)
              RETURNING *`,
-            [gameRoomID, whitePlayerSocket.user.id, blackPlayerSocket.user.id, initialSeconds, incrementSeconds])
+            [gameRoomID, whitePlayer.id, blackPlayer.id, initialSeconds, incrementSeconds,
+                category, whitePlayer.elo, blackPlayer.elo])
 
         users[0].join(gameRoomID)
         users[1].join(gameRoomID)
 
         gameStore.set(gameRoomID, {
             game: gameRecord[0],
-            whitePlayer: new PlayerDto(whitePlayerSocket.user),
-            blackPlayer: new PlayerDto(blackPlayerSocket.user),
+            whitePlayer,
+            blackPlayer,
             chess: new Chess(),
             messages: [],
             drawOffer: null, // {from: userID} while an offer is pending
@@ -212,33 +224,55 @@ class gameService {
         entry.game.moves = entry.chess.history()
         entry.game.fen = entry.chess.fen()
 
+        // wins, losses and draws change ratings; aborted games don't ("after" stays NULL)
+        const isRated = status === "draw" || (status === "finished" && winnerID != null)
+        if (isRated) {
+            let whiteScore = 0.5
+            if (status === "finished") whiteScore = winnerID === entry.whitePlayer.id ? 1 : 0
+
+            const newRatings = calculateRatings(entry.game.white_elo_before, entry.game.black_elo_before, whiteScore)
+            entry.game.white_elo_after = newRatings.white
+            entry.game.black_elo_after = newRatings.black
+        }
+
         // remove before the async save so no other action can end the game twice;
         // finished games are served from the DB from now on
         gameStore.delete(gameID)
 
-        const query = `
-        UPDATE games
-        SET status = $1,
-            winner_id = $2,
-            draw_reason = $3,
-            moves = $4,
-            fen = $5,
-            white_time_remaining = $6,
-            black_time_remaining = $7
-        WHERE id = $8
-    `
-
         try {
-            await db.query(query, [
-                entry.game.status,
-                entry.game.winner_id,
-                entry.game.draw_reason,
-                entry.game.moves,
-                entry.game.fen,
-                entry.game.white_time_remaining,
-                entry.game.black_time_remaining,
-                entry.game.id
-            ])
+            // the game and both ratings are saved together or not at all
+            await db.tx(async (t) => {
+                await t.none(`
+                    UPDATE games
+                    SET status = $1,
+                        winner_id = $2,
+                        draw_reason = $3,
+                        moves = $4,
+                        fen = $5,
+                        white_time_remaining = $6,
+                        black_time_remaining = $7,
+                        white_elo_after = $8,
+                        black_elo_after = $9
+                    WHERE id = $10`, [
+                    entry.game.status,
+                    entry.game.winner_id,
+                    entry.game.draw_reason,
+                    entry.game.moves,
+                    entry.game.fen,
+                    entry.game.white_time_remaining,
+                    entry.game.black_time_remaining,
+                    entry.game.white_elo_after ?? null,
+                    entry.game.black_elo_after ?? null,
+                    entry.game.id
+                ])
+
+                if (isRated) {
+                    // $1:name inserts the column as an SQL identifier; it comes from a fixed map
+                    const column = RATING_COLUMNS[entry.game.rating_category]
+                    await t.none(`UPDATE users SET $1:name = $2 WHERE id = $3`, [column, entry.game.white_elo_after, entry.whitePlayer.id])
+                    await t.none(`UPDATE users SET $1:name = $2 WHERE id = $3`, [column, entry.game.black_elo_after, entry.blackPlayer.id])
+                }
+            })
             console.log(`Game ${entry.game.id} successfully saved to DB.`)
         } catch (err) {
             console.error("Failed to save finished game to DB:", err)

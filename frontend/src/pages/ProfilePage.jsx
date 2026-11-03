@@ -6,6 +6,7 @@ import EmailVerification from "../components/EmailVerification.jsx";
 import {useEffect, useState} from "react";
 import {useParams} from "react-router";
 import api from "../api/axios.js";
+import {RATING_CATEGORIES} from "../features/chess/timeControls.js";
 
 export default function ProfilePage() {
     const { user, logout } = useAuth()
@@ -77,9 +78,6 @@ export default function ProfilePage() {
                         <div className="flex-1 text-center md:text-left">
                             <div className="flex flex-col md:flex-row md:items-center gap-2">
                                 <h1 className="text-2xl font-bold">{profile.username}</h1>
-                                <span className="inline-block bg-ui-interactive text-ui-accent text-xs font-semibold px-2.5 py-1 rounded-full border border-ui-border w-fit mx-auto md:mx-0">
-                                    ELO {profile.elo ?? 800}
-                                </span>
                             </div>
 
                             <p className="text-sm text-ui-secondary cursor-default">
@@ -95,6 +93,19 @@ export default function ProfilePage() {
                     </div>
 
                     {isOwnProfile && !profile.is_activated && <EmailVerification/>}
+
+                    {/* Ratings: one per category of time control */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        {RATING_CATEGORIES.map(({id, label}) => (
+                            <div key={id} className="bg-ui-surface border border-ui-border rounded-lg p-4 text-center">
+                                <p className="text-ui-secondary text-sm">{label}</p>
+                                <p className="text-2xl font-extrabold text-ui-accent mt-1 tabular-nums">{profile.ratings?.[id]?.rating ?? "–"}</p>
+                                <p className="text-base text-ui-secondary mt-1">
+                                    {profile.ratings?.[id]?.games ?? 0} {profile.ratings?.[id]?.games === 1 ? "game" : "games"}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
 
                     {/* Stats Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

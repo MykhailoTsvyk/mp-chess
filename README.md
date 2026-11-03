@@ -2,7 +2,7 @@
 
 A full-stack, real-time chess platform built with React, Node.js/Express, PostgreSQL and Socket.io. Players register, verify their email, queue for a match and play live against other players, with ELO ratings and game history.
 
-> **Status:** work in progress. Authentication, email verification, matchmaking and live gameplay (with chat and spectating) work. Time controls, ELO updates and game history are still being built.
+> **Status:** work in progress. Authentication, email verification, matchmaking with time controls, live gameplay (with chat and spectating) and Elo ratings work. Game history is still being built.
 
 ## Features
 
@@ -19,7 +19,8 @@ A full-stack, real-time chess platform built with React, Node.js/Express, Postgr
 - **In-game chat**: chat in the game room, with each message labelled White, Black or Spectator.
 - **Game page UI**: move history, a board flip button, a result summary and read-only replay of finished games.
 - **Pawn promotion**: when a pawn reaches the last rank, the player picks a queen, rook, bishop or knight. Clicking outside the picker or pressing Esc cancels the move.
-- **Planned**: ELO calculation, game history and friends.
+- **Elo ratings per category**: each player has a Bullet, Blitz and Rapid rating (starting at 800). A time control's category is based on its estimated length (`initial + 40 × increment`): under 3 min is Bullet, under 8 min is Blitz, the rest is Rapid. After a win, loss or draw, both ratings change by the standard Elo formula with K = 32; aborted games aren't rated. The game and both new ratings are saved in one database transaction, and each game stores both players' ratings before and after. The summary window shows each player's rating change.
+- **Planned**: game history and friends.
 
 ## Tech Stack
 
@@ -155,7 +156,7 @@ All routes are prefixed with `/api`.
 | POST   | `/resend-activation`  | Bearer token   | Send a new activation email                     |
 | GET    | `/game/:gameID`       | none           | Get a game and both players                     |
 | GET    | `/active-game`        | Bearer token   | The game you're playing right now: `{ activeGame: { id, timeControl, color, opponent } }`, or `{ activeGame: null }` |
-| GET    | `/user/:id`           | Bearer token   | Get a profile with stats `{ games_played, wins, losses, draws }`; `email` and `is_activated` only on your own profile |
+| GET    | `/user/:id`           | Bearer token   | Get a profile with `ratings` (`{ bullet, blitz, rapid }`, each `{ rating, games }`) and stats `{ games_played, wins, losses, draws }`; `email` and `is_activated` only on your own profile |
 | PUT    | `/user/:id`           | Bearer token   | Update a user (not implemented yet, returns 501) |
 | DELETE | `/user/:id`           | Bearer token   | Delete a user (not implemented yet, returns 501) |
 
@@ -188,11 +189,13 @@ Active games are kept in memory ([backend/store/game.store.js](backend/store/gam
 
 The schema is in [backend/db/db-schema.sql](backend/db/db-schema.sql):
 
-- `users`: account details, activation flag and `elo` (default 800)
+- `users`: account details, activation flag and one rating per category: `elo_bullet`, `elo_blitz`, `elo_rapid` (default 800)
 - `activation_tokens`: email verification tokens (1-hour expiry)
 - `tokens`: one refresh token per user
 - `friendships`: friend requests (`pending` / `accepted` / `rejected`)
-- `games`: players, status, result/draw reason, move list, current FEN and time-control fields
+- `games`: players, status, result/draw reason, move list, current FEN, time-control fields, `rating_category` and each player's rating before and after the game
+
+Changes to an existing database are in [backend/db/migrations/](backend/db/migrations/). Run each file once, in order, for example in pgAdmin's Query Tool. A new database created from `db-schema.sql` doesn't need them.
 
 ## License
 

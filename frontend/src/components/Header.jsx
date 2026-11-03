@@ -59,8 +59,9 @@ export default function Header() {
                         <>
                             <div className="cursor-pointer bg-ui-main border border-ui-main hover:bg-ui-surface hover:border-ui-border hover:opacity-90 transition-all duration-200 px-2
                                             py-0.5 sm:px-3 sm:py-1 rounded-full flex items-center space-x-1 text-xs md:text-sm font-semibold text-accent-ui-color shadow-sm">
-                                <span className="hidden xs:inline">ELO</span>
-                                <span>{user?.elo || 1200}</span>
+                                {/* blitz is the most played category; all three are on the home page and profile */}
+                                <span className="hidden xs:inline">Blitz</span>
+                                <span>{user?.ratings?.blitz ?? "–"}</span>
                             </div>
 
                             <button className="shrink-0 p-1 text-ui-secondary hover:text-ui-primary transition-colors focus:outline-none rounded-full hover:bg-ui-interactive">

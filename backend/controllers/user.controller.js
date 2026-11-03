@@ -41,14 +41,8 @@ class userController {
 
             const user = await userService.activate(activationLink)
 
-            const tokens = tokenService.generateTokens({
-                id: user.id,
-                username: user.username,
-                email: user.email,
-                created_at: user.created_at,
-                is_activated: user.is_activated,
-                elo: user.elo
-            })
+            // same token payload as login and register
+            const tokens = tokenService.generateTokens({...new userDto(user)})
 
             await tokenService.saveToken(user.id, tokens.refresh)
 

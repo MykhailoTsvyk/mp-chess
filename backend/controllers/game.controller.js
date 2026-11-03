@@ -40,8 +40,9 @@ class gameController {
 
             return res.status(200).json({
                 game: gameRecord,
-                whitePlayer: whitePlayerRecord ? new PlayerDto(whitePlayerRecord) : null,
-                blackPlayer: blackPlayerRecord ? new PlayerDto(blackPlayerRecord) : null
+                // current ratings in the game's category; the game row has the before/after values
+                whitePlayer: whitePlayerRecord ? new PlayerDto(whitePlayerRecord, gameRecord.rating_category) : null,
+                blackPlayer: blackPlayerRecord ? new PlayerDto(blackPlayerRecord, gameRecord.rating_category) : null
             })
         } catch (e) {
             console.error("Failed to fetch game:", e)

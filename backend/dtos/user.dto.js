@@ -4,7 +4,7 @@ class UserDto {
     email;
     created_at;
     is_activated;
-    elo;
+    ratings;
 
     constructor(model) {
         this.id = model.id
@@ -12,7 +12,11 @@ class UserDto {
         this.email = model.email
         this.created_at = model.created_at
         this.is_activated = model.is_activated
-        this.elo = model.elo
+        this.ratings = {
+            bullet: model.elo_bullet,
+            blitz: model.elo_blitz,
+            rapid: model.elo_rapid
+        }
     }
 }
 

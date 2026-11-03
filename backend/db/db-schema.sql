@@ -5,7 +5,10 @@ CREATE TABLE users(
     is_activated BOOLEAN NOT NULL DEFAULT FALSE,
     password VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    elo INT NOT NULL DEFAULT 800
+    -- one Elo rating per category of time control
+    elo_bullet INT NOT NULL DEFAULT 800,
+    elo_blitz INT NOT NULL DEFAULT 800,
+    elo_rapid INT NOT NULL DEFAULT 800
 );
 
 CREATE TABLE activation_tokens(
@@ -39,6 +42,7 @@ CREATE TABLE friendships (
 
 CREATE TYPE draw_reason AS ENUM ('stalemate', 'insufficient_material', 'threefold_repetition', 'fifty_move_rule', 'agreement');
 CREATE TYPE match_status AS ENUM ('pending', 'active', 'draw', 'finished', 'aborted');
+CREATE TYPE rating_category AS ENUM ('bullet', 'blitz', 'rapid');
 -- pending for created match without both players joining it
 -- aborted for cancelled game
 
@@ -59,6 +63,13 @@ CREATE TABLE games (
     increment_time_control INT DEFAULT 0,
     white_time_remaining INT DEFAULT 1200,
     black_time_remaining INT DEFAULT 1200,
+
+    -- Ratings: "before" is saved when the game starts, "after" when it ends (NULL if aborted)
+    rating_category rating_category,
+    white_elo_before INT,
+    white_elo_after INT,
+    black_elo_before INT,
+    black_elo_after INT,
 
     CONSTRAINT fk_white_player FOREIGN KEY (white_player) REFERENCES users(id) ON DELETE SET NULL,
     CONSTRAINT fk_black_player FOREIGN KEY (black_player) REFERENCES users(id) ON DELETE SET NULL,

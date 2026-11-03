@@ -11,5 +11,12 @@ export const TIME_CONTROLS = [
 
 export const DEFAULT_TIME_CONTROL = "10+0"
 
+// rating categories, in display order; ids match the backend's rating_category
+export const RATING_CATEGORIES = [
+    {id: "bullet", label: "Bullet"},
+    {id: "blitz", label: "Blitz"},
+    {id: "rapid", label: "Rapid"},
+]
+
 // "3+2" -> "3 + 2"
 export const formatTimeControl = (id) => id?.replace("+", " + ")
