@@ -18,6 +18,7 @@ A full-stack, real-time chess platform built with React, Node.js/Express, Postgr
 - **Reconnect and spectating**: after a page reload, the client asks the server for the current game state. Other logged-in users with a verified email can open `/game/:gameID` to watch a game live and chat as Spectator. Logged-out users are sent to login and brought back to the game afterwards. If the server rejects an expired session, the client refreshes it once and logs out if that fails.
 - **In-game chat**: chat in the game room, with each message labelled White, Black or Spectator.
 - **Game page UI**: move history, a board flip button, a result summary and read-only replay of finished games.
+- **Drag and drop**: pieces can be dragged (mouse or touch) or moved by clicking a piece and then a square. Starting a drag highlights the piece's legal moves, the piece follows the pointer and leaves its square empty, and dropping on an illegal square puts it back.
 - **Pawn promotion**: when a pawn reaches the last rank, the player picks a queen, rook, bishop or knight. Clicking outside the picker or pressing Esc cancels the move.
 - **Elo ratings per category**: each player has a Bullet, Blitz and Rapid rating (starting at 800). A time control's category is based on its estimated length (`initial + 40 × increment`): under 3 min is Bullet, under 8 min is Blitz, the rest is Rapid. After a win, loss or draw, both ratings change by the standard Elo formula with K = 32; aborted games aren't rated. The game and both new ratings are saved in one database transaction, and each game stores both players' ratings before and after. The summary window shows each player's rating change.
 - **Planned**: game history and friends.
@@ -26,7 +27,7 @@ A full-stack, real-time chess platform built with React, Node.js/Express, Postgr
 
 | Layer    | Technologies                                                                 |
 | -------- | ---------------------------------------------------------------------------- |
-| Frontend | React 19, Vite, React Router, Tailwind CSS v4, Axios, socket.io-client, chess.js |
+| Frontend | React 19, Vite, React Router, Tailwind CSS v4, Axios, socket.io-client, chess.js, react-dnd (HTML5 + touch backends) |
 | Backend  | Node.js (ES modules), Express 5, Socket.io, pg-promise, chess.js, node-cron |
 | Auth     | jsonwebtoken, bcrypt, cookie-parser                                          |
 | Database | PostgreSQL                                                                   |

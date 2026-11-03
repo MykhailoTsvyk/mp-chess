@@ -9,6 +9,9 @@ import PlayerCard from "./PlayerCard.jsx"
 import GameControls from "./GameControls.jsx"
 import PromotionPicker from "./PromotionPicker.jsx"
 import PlayerClock from "./PlayerClock.jsx"
+import PieceDragLayer from "./PieceDragLayer.jsx"
+import {DndProvider} from "react-dnd-multi-backend"
+import {HTML5toTouch} from "rdndmb-html5-to-touch"
 import {useChess} from "../../context/ChessContext.jsx";
 import {useAuth} from "../../context/AuthContext.jsx";
 import {useSocket} from "../../context/SocketContext.jsx";
@@ -36,8 +39,11 @@ export default function ChessBoard(){
     const [selectedSquare, setSelectedSquare] = useState('')
     // a finished game is read-only, even if its final position has this player to move
     const canMove = !isGameOver && myColor === game.turn()
-    const legalMoves = canMove && selectedSquare ? game.moves({ square: selectedSquare.coordinate, verbose: true }) : []
+    const movesFrom = (square) => canMove ? game.moves({ square, verbose: true }) : []
+    const legalMoves = selectedSquare ? movesFrom(selectedSquare.coordinate) : []
     const validMoves = legalMoves.map(m => m.to)
+    // "capture" or "move" for each target square; en passant counts as a capture although the square is empty
+    const moveHints = Object.fromEntries(legalMoves.map(m => [m.to, m.captured ? "capture" : "move"]))
 
     // {from, to} while the player picks a piece for a pawn reaching the last rank
     const [pendingPromotion, setPendingPromotion] = useState(null)
@@ -46,16 +52,28 @@ export default function ChessBoard(){
         socket.emit("game:move", gameData.game.id, from, to, promotion)
     }
 
+    // shared by clicking and dropping; checked against the moves from the start square,
+    // since a drop can land on any square
     function handleMove(from, to) {
-        const isPromotion = legalMoves.some(m => m.to === to && m.promotion)
+        const moves = movesFrom(from).filter(m => m.to === to)
 
-        if (isPromotion) {
+        if (moves.some(m => m.promotion)) {
             setPendingPromotion({from, to})
-        } else {
+        } else if (moves.length > 0) {
             sendMove(from, to)
         }
 
         setSelectedSquare('')
+    }
+
+    // dragging selects the piece, so its moves are highlighted like after a click
+    function handleDragStart(coordinate, piece) {
+        setSelectedSquare({piece, coordinate})
+    }
+
+    // dropping back on the start square keeps the piece selected, like a click
+    function handleDrop(from, to) {
+        if (from !== to) handleMove(from, to)
     }
 
     function handlePromotionSelect(piece) {
@@ -67,7 +85,9 @@ export default function ChessBoard(){
     const [flipToggled, setFlipToggled] = useState(false)
     const isFlipped = (myColor === "b") !== flipToggled
 
+    // mouse drags use the HTML5 backend; the first touch switches to the touch backend
     return (
+        <DndProvider options={HTML5toTouch}>
             <div className="w-full max-w-[560px] lg:max-w-[640px] xl:max-w-[720px] mx-auto">
                 {/* ${isFlipped ? "flex-row-reverse" : ""}*/}
                 <div className={`relative flex flex-col ${isFlipped ? "flex-col-reverse" : ""}`}>
@@ -100,7 +120,12 @@ export default function ChessBoard(){
                                                         selectedSquare={selectedSquare}
                                                         setSelectedSquare={setSelectedSquare}
                                                         validMoves={validMoves}
+                                                        moveHint={moveHints[`${col + (rowIndex + 1)}`] ?? null}
                                                         onMove={handleMove}
+                                                        canDrag={canMove && piece?.color === myColor}
+                                                        onDragStart={handleDragStart}
+                                                        onDragCancel={() => setSelectedSquare('')}
+                                                        onDrop={handleDrop}
                                                 />
                                             )
 
@@ -127,6 +152,8 @@ export default function ChessBoard(){
                 {/* Game controls */}
                 <GameControls onFlip={() => setFlipToggled(!flipToggled)}/>
 
+                <PieceDragLayer/>
             </div>
+        </DndProvider>
     )
 }

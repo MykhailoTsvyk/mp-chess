@@ -18,7 +18,13 @@ function renderBoard({user = WHITE, gameData = liveGame(), isGameOver = false} =
 
 const square = (coordinate) => document.querySelector(`[data-square="${coordinate}"]`)
 const click = (coordinate) => fireEvent.click(square(coordinate))
-const highlighted = () => [...document.querySelectorAll("[data-square].ring-4")].map(s => s.dataset.square).sort()
+const highlighted = () => [...document.querySelectorAll("[data-move-hint]")].map(s => s.dataset.square).sort()
+// the marker drawn on a target square: "dot", "ring" or null
+const marker = (coordinate) => {
+    const span = [...square(coordinate).querySelectorAll("span")].find(s => s.className.includes("rounded-full"))
+    if (!span) return null
+    return span.className.includes("border-") ? "ring" : "dot"
+}
 const pieceOn = (coordinate) => square(coordinate).querySelector("img")?.alt ?? null
 
 // the files along the bottom edge, left to right
@@ -183,5 +189,168 @@ describe("promotion", () => {
         click("e4")
 
         expect(screen.queryByText("Promote pawn to")).not.toBeInTheDocument()
+    })
+})
+
+// fires the HTML5 drag events a browser sends when a piece is dragged from one square to another
+function dataTransfer() {
+    const data = {}
+    return {
+        dropEffect: "move", effectAllowed: "all", files: [], items: [], types: [],
+        setData: (key, value) => { data[key] = value },
+        getData: (key) => data[key],
+        clearData: () => {},
+        setDragImage: () => {},
+    }
+}
+
+function startDrag(from) {
+    const transfer = dataTransfer()
+    fireEvent.dragStart(square(from), {dataTransfer: transfer, clientX: 10, clientY: 10})
+    return transfer
+}
+
+function hover(transfer, over) {
+    fireEvent.dragEnter(square(over), {dataTransfer: transfer, clientX: 40, clientY: 40})
+    fireEvent.dragOver(square(over), {dataTransfer: transfer, clientX: 40, clientY: 40})
+}
+
+function drop(transfer, from, to) {
+    hover(transfer, to)
+    fireEvent.drop(square(to), {dataTransfer: transfer})
+    fireEvent.dragEnd(square(from), {dataTransfer: transfer})
+}
+
+function dragAndDrop(from, to) {
+    drop(startDrag(from), from, to)
+}
+
+describe("drag and drop", () => {
+    test("dragging one of your pieces highlights its legal moves, like clicking it", () => {
+        renderBoard()
+
+        const transfer = startDrag("g1")
+        hover(transfer, "g1")
+
+        expect(highlighted()).toEqual(["f3", "h3"])
+    })
+
+    test("the dragged piece leaves its square and follows the pointer", () => {
+        renderBoard()
+
+        const transfer = startDrag("e2")
+        hover(transfer, "e3")
+
+        expect(pieceOn("e2")).toBe(null)
+        const preview = document.querySelector(".fixed img")
+        expect(preview).not.toBe(null)
+        expect(preview.style.transform).toContain("translate(")
+    })
+
+    test("dropping on a legal square sends the move", () => {
+        renderBoard()
+
+        dragAndDrop("e2", "e4")
+
+        expect(mocks.socket.socket.emit).toHaveBeenCalledWith("game:move", "game_1", "e2", "e4", undefined)
+        expect(highlighted()).toEqual([])
+        expect(document.querySelector(".fixed img")).toBe(null)
+    })
+
+    test("dropping on an illegal square sends nothing and puts the piece back", () => {
+        renderBoard()
+
+        dragAndDrop("e2", "e5")
+
+        expect(mocks.socket.socket.emit).not.toHaveBeenCalled()
+        expect(pieceOn("e2")).toBe("w p")
+        expect(highlighted()).toEqual([])
+    })
+
+    test("dropping back on the start square keeps the piece selected", () => {
+        renderBoard()
+
+        dragAndDrop("e2", "e2")
+
+        expect(mocks.socket.socket.emit).not.toHaveBeenCalled()
+        expect(highlighted()).toEqual(["e3", "e4"])
+    })
+
+    test("after a drop on the start square, a click on a target makes the move", () => {
+        renderBoard()
+
+        dragAndDrop("e2", "e2")
+        click("e4")
+
+        expect(mocks.socket.socket.emit).toHaveBeenCalledWith("game:move", "game_1", "e2", "e4", undefined)
+    })
+
+    test("a pawn dropped on the last rank asks for the promotion piece", () => {
+        renderBoard({gameData: liveGame({game: {fen: PROMOTION_FEN}})})
+
+        dragAndDrop("e7", "e8")
+        expect(mocks.socket.socket.emit).not.toHaveBeenCalled()
+
+        fireEvent.click(screen.getByRole("button", {name: "Rook"}))
+        expect(mocks.socket.socket.emit).toHaveBeenCalledWith("game:move", "game_1", "e7", "e8", "r")
+    })
+
+    test.each([
+        ["the opponent's piece", {}, "e7", "e5"],
+        ["a piece while it's the opponent's turn", {user: BLACK}, "e7", "e5"],
+        ["a piece as a spectator", {user: SPECTATOR}, "e2", "e4"],
+        ["a piece after the game ended", {gameData: liveGame({game: {status: "finished"}}), isGameOver: true}, "e2", "e4"],
+    ])("you can't drag %s", (_, options, from, to) => {
+        renderBoard(options)
+
+        const transfer = startDrag(from)
+        hover(transfer, to)
+        // the drag never starts, so nothing is highlighted, nothing moves and nothing can be dropped
+        expect(highlighted()).toEqual([])
+        expect(pieceOn(from)).not.toBe(null)
+        expect(document.querySelector(".fixed img")).toBe(null)
+        expect(mocks.socket.socket.emit).not.toHaveBeenCalled()
+    })
+})
+
+describe("move markers", () => {
+    test("an ordinary move is marked with a dot in the middle of the square", () => {
+        renderBoard()
+
+        click("e2")
+
+        expect(marker("e3")).toBe("dot")
+        expect(marker("e4")).toBe("dot")
+        expect(square("e4").querySelector("span.rounded-full").className).toContain("emerald")
+    })
+
+    test("a capture is marked with a ring around the piece, and the piece stays visible", () => {
+        // 1. e4 d5: the e4 pawn can push to e5 or take on d5
+        renderBoard({gameData: liveGame({game: {fen: "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2"}})})
+
+        click("e4")
+
+        expect(marker("d5")).toBe("ring")
+        expect(pieceOn("d5")).toBe("b p")
+        expect(marker("e5")).toBe("dot")
+    })
+
+    test("en passant is marked as a capture although the square is empty", () => {
+        // 1. e4 d5 2. e5 f5: exf6 en passant is possible
+        renderBoard({gameData: liveGame({game: {fen: "rnbqkbnr/ppp1p1pp/8/3pPp2/8/8/PPPP1PPP/RNBQKBNR w KQkq f6 0 3"}})})
+
+        click("e5")
+
+        expect(marker("f6")).toBe("ring")
+        expect(marker("e6")).toBe("dot")
+    })
+
+    test("squares that aren't legal moves have no marker", () => {
+        renderBoard()
+
+        click("e2")
+
+        expect(marker("e5")).toBe(null)
+        expect(marker("d3")).toBe(null)
     })
 })
