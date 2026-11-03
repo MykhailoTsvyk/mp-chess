@@ -143,6 +143,22 @@ Open http://localhost:5173.
 | `frontend/` | `npm run preview` | Serve the production build        |
 | `frontend/` | `npm run lint`    | Run ESLint                        |
 
+## Testing
+
+Both apps use [Vitest](https://vitest.dev).
+
+```bash
+cd backend && npm test        # unit + integration (needs PostgreSQL running)
+cd backend && npm run test:unit   # game logic and Elo only, no database
+cd frontend && npm test       # React components (jsdom + Testing Library)
+```
+
+- **Backend unit tests** (`backend/tests/unit`): game rules, clocks, first-move and leave timeouts, resign and draw offers, and Elo, with fake timers and a stubbed database.
+- **Backend integration tests** (`backend/tests/integration`): a real Socket.io server and clients (auth, matchmaking, full games, spectators, chat, leaving), the HTTP game routes, and saving games and ratings to PostgreSQL, including the transaction.
+- **Frontend tests** (`frontend/src/**/*.test.jsx`): board, promotion, clocks, game controls, the summary window and the game context.
+
+The integration tests use a separate database, `chessMP_test` (set `TEST_DB_NAME` to change it). It is created if it's missing and rebuilt from `db-schema.sql` on every run, so your dev database is never touched. The setup refuses to run against a database whose name doesn't end in `_test`.
+
 ## API Reference
 
 All routes are prefixed with `/api`.

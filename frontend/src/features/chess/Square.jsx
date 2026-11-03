@@ -16,6 +16,7 @@ export default function Square({isLight, piece= null, coordinate, selectedSquare
 
     return (
         <div
+            data-square={coordinate}
             className={`${bgClass} relative flex aspect-square w-full items-center justify-center p-1 select-none ${validMoves.includes(coordinate) ? "ring-4 ring-inset ring-emerald-500/70" : "" }`}
             onClick={handleSelectedSquare}
         >
