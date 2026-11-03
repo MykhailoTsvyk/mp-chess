@@ -4,10 +4,12 @@ import { useAuth } from "../context/AuthContext.jsx"
 import GameHistory from "../components/GameHistory.jsx";
 import MatchmakingWindow from "../components/MatchmakingWindow.jsx";
 import {useState} from "react";
+import {TIME_CONTROLS, DEFAULT_TIME_CONTROL, formatTimeControl} from "../features/chess/timeControls.js";
 
 export default function HomePage() {
     const {user, isAuthenticated} = useAuth()
     const [isMatchmaking, setIsMatchmaking] = useState(false)
+    const [timeControl, setTimeControl] = useState(DEFAULT_TIME_CONTROL)
 
     if (isAuthenticated) {
         return (
@@ -30,6 +32,26 @@ export default function HomePage() {
                     {/* Play Panel */}
                     <div className="bg-ui-surface border-2 border-ui-border rounded-lg p-8 shadow-md text-center">
                         <h2 className="text-xl font-bold text-ui-primary mb-4">Start Matchmaking</h2>
+
+                        {/* Time control: players are only matched with the same choice */}
+                        <div className="mx-auto mb-6 grid max-w-md grid-cols-3 gap-2">
+                            {TIME_CONTROLS.map(({id, category}) => (
+                                <button key={id}
+                                        type="button"
+                                        onClick={() => setTimeControl(id)}
+                                        aria-pressed={timeControl === id}
+                                        className={`rounded-lg border-2 px-3 py-2 transition-colors cursor-pointer ${
+                                            timeControl === id
+                                                ? "border-ui-accent bg-ui-interactive text-ui-primary"
+                                                : "border-ui-border text-ui-secondary hover:border-ui-accent/60 hover:text-ui-primary"
+                                        }`}
+                                >
+                                    <span className="block text-lg font-bold">{formatTimeControl(id)}</span>
+                                    <span className="block text-xs">{category}</span>
+                                </button>
+                            ))}
+                        </div>
+
                         <button
                             type="button"
                             className="bg-ui-accent hover:opacity-90 text-ui-contrast font-bold text-lg px-8 py-4 rounded-lg shadow-lg cursor-pointer transition transform active:scale-95"
@@ -38,7 +60,7 @@ export default function HomePage() {
                             Play Game
                         </button>
                     </div>
-                    {isMatchmaking && (<MatchmakingWindow cancelMatchmaking={setIsMatchmaking}/>)}
+                    {isMatchmaking && (<MatchmakingWindow cancelMatchmaking={setIsMatchmaking} timeControl={timeControl}/>)}
 
                     <GameHistory/>
                 </div>

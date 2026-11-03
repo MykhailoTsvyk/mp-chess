@@ -4,6 +4,19 @@ import flipIconWhite from "../../assets/images/icons/flipIcon.svg"
 import {useChess} from "../../context/ChessContext.jsx";
 import {useAuth} from "../../context/AuthContext.jsx";
 import {useSocket} from "../../context/SocketContext.jsx";
+import {useCountdown} from "../../hooks/useCountdown.js";
+
+// each side must make its first move in time, otherwise the server aborts the game
+function FirstMoveCountdown({ms, syncedAt, side}) {
+    const remaining = useCountdown(ms, syncedAt, true)
+    const secondsLeft = Math.ceil(remaining / 1000)
+
+    return (
+        <p className="w-full text-sm text-ui-secondary">
+            {side} has <span className="font-semibold text-ui-primary">{secondsLeft}s</span> to make the first move, otherwise the game is aborted.
+        </p>
+    )
+}
 
 const buttonClass = "flex items-center justify-center rounded-md bg-ui-main px-3 py-2 text-sm font-medium text-ui-primary transition-opacity hover:opacity-80 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
 
@@ -110,6 +123,13 @@ export default function GameControls({onFlip}) {
                                 noMovesYet={noMovesYet}
                 />
             ))}
+
+            {!isGameOver && gameData?.clock?.firstMoveMs != null && (
+                <FirstMoveCountdown ms={gameData.clock.firstMoveMs}
+                                    syncedAt={gameData.receivedAt}
+                                    side={gameData.clock.turn === "w" ? "White" : "Black"}
+                />
+            )}
         </div>
     )
 }

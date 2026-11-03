@@ -1,27 +1,37 @@
-import matchmakingService from "../services/matchmaking.service.js";
+import matchmakingService, {queueRoom, ALL_QUEUE_ROOMS, leaveAllQueues} from "../services/matchmaking.service.js";
 import gameService from "../services/game.service.js";
 import {gameStore} from "../store/game.store.js";
+import {TIME_CONTROLS} from "../config/timeControls.js";
 
 export const registerMatchmakingHandlers = (io, socket) => {
-    socket.on("matchmaking:start", async () => {
-        try {
-            const currUserID = socket.user.id
-            const socketsInQueue = await io.in("queue").fetchSockets()
+    // games ended by a clock or the first-move deadline are announced to the room
+    const onTimerEnd = (entry) => io.to(entry.game.id).emit("game:updated", gameService.serialize(entry))
 
-            for (const connectedSocket of socketsInQueue) {
+    socket.on("matchmaking:start", async (timeControlID) => {
+        try {
+            if (!TIME_CONTROLS[timeControlID]) return
+
+            const currUserID = socket.user.id
+            const socketsInQueues = await io.in(ALL_QUEUE_ROOMS).fetchSockets()
+
+            // only one search per user: a search from another tab cancels the old one
+            for (const connectedSocket of socketsInQueues) {
                 if (connectedSocket.user.id === currUserID && connectedSocket.id !== socket.id) {
-                    connectedSocket.leave("queue")
+                    leaveAllQueues(connectedSocket)
                     connectedSocket.emit("matchmaking:cancelled")
                 }
             }
 
-            await socket.join("queue")
+            const room = queueRoom(timeControlID)
+            leaveAllQueues(socket)
+            await socket.join(room)
             socket.emit("matchmaking:queued", {
                 status: "Looking for opponents",
-                totalPlayers: io.sockets.adapter.rooms.get("queue")?.size || 0
+                timeControl: timeControlID,
+                totalPlayers: io.sockets.adapter.rooms.get(room)?.size || 0
             })
 
-            const gameID = await matchmakingService.attemptFindMatch(io, socket)
+            const gameID = await matchmakingService.attemptFindMatch(io, timeControlID, onTimerEnd)
             const entry = gameStore.get(gameID)
 
             if (entry) {
@@ -33,11 +43,10 @@ export const registerMatchmakingHandlers = (io, socket) => {
     })
 
     socket.on("matchmaking:cancel", () => {
-        socket.leave("queue")
+        leaveAllQueues(socket)
     })
 
     socket.on("disconnecting", () => {
-        socket.leave("queue")
-        console.log("user disconnected, size of queue room: ", io.sockets.adapter.rooms.get("queue")?.size || 0)
+        leaveAllQueues(socket)
     })
 }

@@ -1,9 +1,9 @@
 import {useEffect, useState} from "react";
 import {useSocket} from "../context/SocketContext.jsx";
 import {useNavigate} from "react-router";
-import {useChess} from "../context/ChessContext.jsx";
+import {formatTimeControl} from "../features/chess/timeControls.js";
 
-export default function MatchmakingWindow({cancelMatchmaking}) {
+export default function MatchmakingWindow({cancelMatchmaking, timeControl}) {
     const {socket, isConnected} = useSocket()
     const [matchmakingData, setmatchmakingData] = useState('')
     const [isCancelled, setIsCancelled] = useState(false)
@@ -12,7 +12,7 @@ export default function MatchmakingWindow({cancelMatchmaking}) {
     useEffect(() => {
         if (!socket || !isConnected) return
 
-        socket.emit("matchmaking:start")
+        socket.emit("matchmaking:start", timeControl)
 
         const handleQueued = (data) => setmatchmakingData(data);
         const handleMatchFound = (data) => navigate(`/game/${data.game.id}`);
@@ -30,7 +30,7 @@ export default function MatchmakingWindow({cancelMatchmaking}) {
 
             socket.emit("matchmaking:cancel")
         }
-    }, [socket, isConnected]);
+    }, [socket, isConnected, timeControl]);
 
     return (
         <div className="fixed inset-0 z-99 flex items-center justify-center p-4">
@@ -47,6 +47,10 @@ export default function MatchmakingWindow({cancelMatchmaking}) {
                         </h1>
 
                         {matchmakingData && (<p className="mt-2 text-sm text-ui-secondary">{matchmakingData.status}</p>)}
+
+                        <p className="mt-2 text-sm text-ui-secondary">
+                            Time control: <span className="text-ui-primary font-bold">{formatTimeControl(timeControl)}</span>
+                        </p>
 
                         <p className="mt-2 text-sm text-ui-secondary">
                             Players in the queue: <span className="text-ui-accent font-bold">{matchmakingData.totalPlayers}</span>

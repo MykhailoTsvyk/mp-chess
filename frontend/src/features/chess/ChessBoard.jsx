@@ -8,6 +8,7 @@ import Square from "./Square.jsx"
 import PlayerCard from "./PlayerCard.jsx"
 import GameControls from "./GameControls.jsx"
 import PromotionPicker from "./PromotionPicker.jsx"
+import PlayerClock from "./PlayerClock.jsx"
 import {useChess} from "../../context/ChessContext.jsx";
 import {useAuth} from "../../context/AuthContext.jsx";
 import {useSocket} from "../../context/SocketContext.jsx";
@@ -70,6 +71,7 @@ export default function ChessBoard(){
                 <div className={`relative flex flex-col ${isFlipped ? "flex-col-reverse" : ""}`}>
                     <div className="flex items-center gap-2 border border-ui-border bg-ui-surface px-3 py-2 text-ui-primary">
                         <PlayerCard user={gameData?.blackPlayer} />
+                        <div className="ml-auto"><PlayerClock color="b"/></div>
                     </div>
                     <div className={`relative flex ${isFlipped ? "flex-col" : "flex-col-reverse"}`}>
                         {
@@ -114,6 +116,7 @@ export default function ChessBoard(){
                     </div>
                     <div className="flex items-center gap-2 border border-ui-border bg-ui-surface px-3 py-2 text-ui-primary">
                         <PlayerCard user={gameData?.whitePlayer} />
+                        <div className="ml-auto"><PlayerClock color="w"/></div>
                     </div>
 
                 </div>

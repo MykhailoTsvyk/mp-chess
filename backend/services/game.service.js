@@ -2,25 +2,32 @@ import {Chess} from "chess.js";
 import db from "../db/db.js";
 import {gameStore} from "../store/game.store.js";
 import PlayerDto from "../dtos/player.dto.js";
+import {TIME_CONTROLS, FIRST_MOVE_TIMEOUT_MS} from "../config/timeControls.js";
 
 class gameService {
 
-    // array of user IDs to randomly assign sides
-    async start(users, gameRoomID) {
+    // array of user IDs to randomly assign sides;
+    // onTimerEnd(entry) is called when a clock or the first-move deadline ends the game
+    async start(users, gameRoomID, timeControlID, onTimerEnd) {
         const pivot = Math.floor(Math.random() * 2)
         const whitePlayerSocket = users[pivot] // 0 OR 1
         const blackPlayerSocket = users[pivot ? 0 : 1] // opposite side to white
+        const {initialSeconds, incrementSeconds} = TIME_CONTROLS[timeControlID]
 
         const gameRecord = await db.query(`
             INSERT INTO games (
                 id,
                 white_player,
                 black_player,
-                status
+                status,
+                initial_time_control,
+                increment_time_control,
+                white_time_remaining,
+                black_time_remaining
             )
-            VALUES ($1, $2, $3, 'active')
+            VALUES ($1, $2, $3, 'active', $4, $5, $4, $4)
              RETURNING *`,
-            [gameRoomID, whitePlayerSocket.user.id, blackPlayerSocket.user.id])
+            [gameRoomID, whitePlayerSocket.user.id, blackPlayerSocket.user.id, initialSeconds, incrementSeconds])
 
         users[0].join(gameRoomID)
         users[1].join(gameRoomID)
@@ -33,10 +40,105 @@ class gameService {
             messages: [],
             drawOffer: null, // {from: userID} while an offer is pending
             drawBlocked: new Set(), // players who can't offer again until their next move
-            leaveTimers: new Map() // userID -> {deadline, timer} for players who left
+            leaveTimers: new Map(), // userID -> {deadline, timer} for players who left
+            timeControl: timeControlID,
+            onTimerEnd,
+            // time is only subtracted when a move is made; the running side's time is
+            // remaining - (now - turnStartedAt), and one timeout fires when it runs out
+            clock: {
+                remaining: {w: initialSeconds * 1000, b: initialSeconds * 1000},
+                increment: incrementSeconds * 1000,
+                turnStartedAt: Date.now(),
+                running: true,
+                flagTimer: null,
+                firstMoveDeadline: null,
+                firstMoveTimer: null
+            }
         })
 
+        // clocks start right away, and white also has a first-move deadline
+        this.scheduleClock(gameRoomID)
+        this.scheduleFirstMove(gameRoomID)
+
         return gameRecord[0].id
+    }
+
+    // remaining milliseconds of a side, including the time of the turn in progress
+    getRemaining(entry, color) {
+        const {clock} = entry
+        if (!clock.running || entry.chess.turn() !== color) {
+            return clock.remaining[color]
+        }
+        return Math.max(0, clock.remaining[color] - (Date.now() - clock.turnStartedAt))
+    }
+
+    // one timeout for the side to move, fired when their time runs out
+    scheduleClock(gameID) {
+        const entry = gameStore.get(gameID)
+        if (!entry) return
+
+        clearTimeout(entry.clock.flagTimer)
+        const ms = this.getRemaining(entry, entry.chess.turn())
+        entry.clock.flagTimer = setTimeout(() => this.handleClockTimeout(gameID), ms)
+    }
+
+    // each side gets FIRST_MOVE_TIMEOUT_MS for its first move: white from the start,
+    // black from white's first move
+    scheduleFirstMove(gameID) {
+        const entry = gameStore.get(gameID)
+        if (!entry) return
+
+        clearTimeout(entry.clock.firstMoveTimer)
+        entry.clock.firstMoveTimer = null
+        entry.clock.firstMoveDeadline = null
+
+        if (entry.chess.history().length >= 2) return
+
+        entry.clock.firstMoveDeadline = Date.now() + FIRST_MOVE_TIMEOUT_MS
+        entry.clock.firstMoveTimer = setTimeout(() => this.handleFirstMoveTimeout(gameID), FIRST_MOVE_TIMEOUT_MS)
+    }
+
+    // true while the side to move hasn't made its first move yet
+    isWaitingForFirstMove(entry) {
+        return entry.chess.history().length < 2
+    }
+
+    async handleClockTimeout(gameID) {
+        try {
+            const entry = gameStore.get(gameID)
+            if (!entry) return
+
+            const color = entry.chess.turn()
+
+            // timers can fire a few ms early; wait for the rest
+            if (this.getRemaining(entry, color) > 0) {
+                this.scheduleClock(gameID)
+                return
+            }
+
+            if (this.isWaitingForFirstMove(entry)) {
+                await this.endGame(gameID, {status: "aborted"})
+            } else {
+                const winnerID = color === "w" ? entry.blackPlayer.id : entry.whitePlayer.id
+                await this.endGame(gameID, {status: "finished", winnerID})
+            }
+
+            entry.onTimerEnd?.(entry)
+        } catch (e) {
+            console.error("Failed to resolve clock timeout:", e)
+        }
+    }
+
+    async handleFirstMoveTimeout(gameID) {
+        try {
+            const entry = gameStore.get(gameID)
+            if (!entry || !this.isWaitingForFirstMove(entry)) return
+
+            await this.endGame(gameID, {status: "aborted"})
+            entry.onTimerEnd?.(entry)
+        } catch (e) {
+            console.error("Failed to resolve first move timeout:", e)
+        }
     }
 
     // shape of the game state that is sent to clients
@@ -53,7 +155,16 @@ class gameService {
             messages: entry.messages,
             drawOffer: entry.drawOffer,
             drawBlocked: [...entry.drawBlocked],
-            leftPlayers // userID -> timestamp when the timeout ends the game
+            leftPlayers, // userID -> timestamp when the timeout ends the game
+            // milliseconds measured on the server at send time, so client clock differences don't matter
+            clock: {
+                timeControl: entry.timeControl,
+                white: this.getRemaining(entry, "w"),
+                black: this.getRemaining(entry, "b"),
+                turn: entry.chess.turn(),
+                running: entry.clock.running,
+                firstMoveMs: entry.clock.firstMoveDeadline ? Math.max(0, entry.clock.firstMoveDeadline - Date.now()) : null
+            }
         }
     }
 
@@ -75,6 +186,17 @@ class gameService {
         }
         entry.leaveTimers.clear()
         entry.drawOffer = null
+
+        // freeze both clocks at their final values; the DB stores whole seconds
+        const {clock} = entry
+        clock.remaining.w = this.getRemaining(entry, "w")
+        clock.remaining.b = this.getRemaining(entry, "b")
+        clock.running = false
+        clearTimeout(clock.flagTimer)
+        clearTimeout(clock.firstMoveTimer)
+        clock.firstMoveDeadline = null
+        entry.game.white_time_remaining = Math.round(clock.remaining.w / 1000)
+        entry.game.black_time_remaining = Math.round(clock.remaining.b / 1000)
 
         entry.game.status = status
         entry.game.winner_id = winnerID
@@ -159,6 +281,13 @@ class gameService {
             return {success: false}
         }
 
+        // a move that arrives after the mover's time ran out loses on time instead
+        const remainingBeforeMove = this.getRemaining(entry, senderColor)
+        if (remainingBeforeMove <= 0) {
+            await this.handleClockTimeout(gameID)
+            return {success: false}
+        }
+
         const legalMove = entry.chess.moves({square: from, verbose: true})
             .find(m => m.to === to && (!m.promotion || m.promotion === promotion))
 
@@ -175,14 +304,27 @@ class gameService {
         entry.game.fen = entry.chess.fen()
         entry.game.moves = entry.chess.history()
 
+        // stop the mover's clock, add the increment and start the opponent's clock
+        entry.clock.remaining[senderColor] = remainingBeforeMove + entry.clock.increment
+        entry.clock.turnStartedAt = Date.now()
+
         // a move cancels the mover's own draw offer and lets them offer again
         if (entry.drawOffer?.from === userID) {
             entry.drawOffer = null
         }
         entry.drawBlocked.delete(userID)
 
+        // checkmate, stalemate, insufficient material etc. end the game right away
         if (entry.chess.isGameOver()) {
             await this.finishGame(gameID)
+            return {success: true}
+        }
+
+        this.scheduleClock(gameID)
+
+        // white's first move starts black's first-move deadline; black's first move clears it
+        if (entry.chess.history().length <= 2) {
+            this.scheduleFirstMove(gameID)
         }
 
         return {success: true}

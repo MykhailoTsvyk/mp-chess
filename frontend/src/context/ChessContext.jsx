@@ -49,7 +49,8 @@ export default function ChessProvider({ children }) {
         }
 
         function onGameUpdated(serverData) {
-            setGameData(serverData)
+            // clocks count down locally from the moment this update arrived
+            setGameData({...serverData, receivedAt: performance.now()})
         }
 
         requestSync()

@@ -9,7 +9,8 @@ A full-stack, real-time chess platform built with React, Node.js/Express, Postgr
 - **Authentication**: registration and login, bcrypt password hashing, short-lived JWT access tokens (30 min) and refresh tokens (14 days) stored in an HTTP-only cookie, with rotation on refresh.
 - **Email verification**: an activation link is sent via Gmail (Nodemailer). Tokens expire after 1 hour, and an hourly cron job removes expired tokens.
 - **Authenticated WebSockets**: the Socket.io middleware checks the refresh-token cookie against the database and only accepts users who have verified their email.
-- **Matchmaking**: a queue-based system that pairs two waiting players into a private game room. If the same user queues from several tabs, only the newest connection stays in the queue.
+- **Matchmaking**: a queue-based system that pairs two waiting players into a private game room. Players pick a time control (1+0, 3+0, 3+2, 5+0, 10+0, 15+10) and are only matched with players who chose the same one. If the same user queues from several tabs, only the newest connection stays in the queue.
+- **Chess clocks**: each player's clock runs on their turn and gets the increment after each move. The server stores each side's remaining time and when the current turn started, and schedules a single timeout instead of ticking every second. Running out of time loses. Each side must make its first move within 1 minute, otherwise the game is aborted.
 - **Live gameplay**: moves are validated on the server with `chess.js` and sent to everyone in the game room. Checkmate and draws (stalemate, insufficient material, threefold repetition, 50-move rule) end the game and save it to the database.
 - **Resign and draw offers**: a player can resign (after confirming) or offer a draw. The opponent accepts or declines. An offer is cancelled when the player who made it moves, and after a decline that player can offer again only after their next move.
 - **Leaving a game**: if a player disconnects or leaves the game page, they have 60 seconds to return, and their opponent sees a countdown. When time runs out, the player who left loses. If both players are gone, the game is a draw. If no moves were made, the game is aborted.
@@ -17,7 +18,7 @@ A full-stack, real-time chess platform built with React, Node.js/Express, Postgr
 - **In-game chat**: chat in the game room, with each message labelled White, Black or Spectator.
 - **Game page UI**: move history, a board flip button, a result summary and read-only replay of finished games.
 - **Pawn promotion**: when a pawn reaches the last rank, the player picks a queen, rook, bishop or knight. Clicking outside the picker or pressing Esc cancels the move.
-- **Planned**: time controls, ELO calculation, game history and friends.
+- **Planned**: ELO calculation, game history and friends.
 
 ## Tech Stack
 
@@ -164,7 +165,7 @@ Socket connections are authenticated with the `refreshToken` cookie, so the clie
 
 | Direction       | Event                    | Payload                            |
 | --------------- | ------------------------ | ---------------------------------- |
-| client → server | `matchmaking:start`      | none                               |
+| client → server | `matchmaking:start`      | `timeControl`, e.g. `"3+2"`        |
 | client → server | `matchmaking:cancel`     | none                               |
 | server → client | `matchmaking:queued`     | `{ status, totalPlayers }`         |
 | server → client | `matchmaking:matchFound` | `{ game, whitePlayer, blackPlayer }` |
@@ -176,7 +177,7 @@ Socket connections are authenticated with the `refreshToken` cookie, so the clie
 | client → server | `game:respond-draw`      | `gameID, accept` (`true` / `false`) |
 | client → server | `game:leave`             | `gameID`: sent when the game page closes; starts the 60s timer for players |
 | client → server | `game:sent-message`      | `{ gameID, text }`: the server adds author, role and timestamp |
-| server → client | `game:updated`           | `{ game, whitePlayer, blackPlayer, messages, drawOffer, drawBlocked, leftPlayers }` (`leftPlayers` maps a user ID to the time its timeout ends) |
+| server → client | `game:updated`           | `{ game, whitePlayer, blackPlayer, messages, drawOffer, drawBlocked, leftPlayers, clock }` (`leftPlayers` maps a user ID to the time its timeout ends; `clock` is `{ timeControl, white, black, turn, running, firstMoveMs }` with times in milliseconds) |
 
 Active games are kept in memory ([backend/store/game.store.js](backend/store/game.store.js)) and written to the `games` table when they start and finish. Games still in progress are lost if the server restarts.
 
