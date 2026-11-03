@@ -7,8 +7,10 @@ import {Chess} from "chess.js"
 import Square from "./Square.jsx"
 import PlayerCard from "./PlayerCard.jsx"
 import GameControls from "./GameControls.jsx"
+import PromotionPicker from "./PromotionPicker.jsx"
 import {useChess} from "../../context/ChessContext.jsx";
 import {useAuth} from "../../context/AuthContext.jsx";
+import {useSocket} from "../../context/SocketContext.jsx";
 
 const sounds = {
     capture: new Audio(captureSound),
@@ -19,8 +21,9 @@ const sounds = {
 
 export default function ChessBoard(){
     const {user} = useAuth()
+    const {socket} = useSocket()
     const columns = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
-    const {gameData} = useChess()
+    const {gameData, isGameOver} = useChess()
     const game = new Chess(gameData?.game?.fen)
     const board = game.board().reverse() // rank 1 first
 
@@ -30,7 +33,32 @@ export default function ChessBoard(){
     if (gameData?.blackPlayer?.id === user.id) myColor = "b"
 
     const [selectedSquare, setSelectedSquare] = useState('')
-    const validMoves = myColor === game.turn() && selectedSquare ? game.moves({ square: selectedSquare.coordinate, verbose: true }).map(m => m.to) : []
+    const legalMoves = myColor === game.turn() && selectedSquare ? game.moves({ square: selectedSquare.coordinate, verbose: true }) : []
+    const validMoves = legalMoves.map(m => m.to)
+
+    // {from, to} while the player picks a piece for a pawn reaching the last rank
+    const [pendingPromotion, setPendingPromotion] = useState(null)
+
+    function sendMove(from, to, promotion) {
+        socket.emit("game:move", gameData.game.id, from, to, promotion)
+    }
+
+    function handleMove(from, to) {
+        const isPromotion = legalMoves.some(m => m.to === to && m.promotion)
+
+        if (isPromotion) {
+            setPendingPromotion({from, to})
+        } else {
+            sendMove(from, to)
+        }
+
+        setSelectedSquare('')
+    }
+
+    function handlePromotionSelect(piece) {
+        sendMove(pendingPromotion.from, pendingPromotion.to, piece)
+        setPendingPromotion(null)
+    }
 
     // black sees the board from their side by default; the flip button toggles it
     const [flipToggled, setFlipToggled] = useState(false)
@@ -43,7 +71,7 @@ export default function ChessBoard(){
                     <div className="flex items-center gap-2 border border-ui-border bg-ui-surface px-3 py-2 text-ui-primary">
                         <PlayerCard user={gameData?.blackPlayer} />
                     </div>
-                    <div className={`flex ${isFlipped ? "flex-col" : "flex-col-reverse"}`}>
+                    <div className={`relative flex ${isFlipped ? "flex-col" : "flex-col-reverse"}`}>
                         {
                             [...Array(8)].map((row, rowIndex) => (
                                 <div className={`flex`} key={rowIndex}>
@@ -59,7 +87,7 @@ export default function ChessBoard(){
                                                         selectedSquare={selectedSquare}
                                                         setSelectedSquare={setSelectedSquare}
                                                         validMoves={validMoves}
-                                                        roomID={gameData?.game?.id}
+                                                        onMove={handleMove}
                                                 />
                                             )
 
@@ -68,6 +96,13 @@ export default function ChessBoard(){
                                 </div>
                             ))
                         }
+
+                        {pendingPromotion && !isGameOver && (
+                            <PromotionPicker color={myColor}
+                                             onSelect={handlePromotionSelect}
+                                             onCancel={() => setPendingPromotion(null)}
+                            />
+                        )}
                     </div>
                     <div className="flex items-center gap-2 border border-ui-border bg-ui-surface px-3 py-2 text-ui-primary">
                         <PlayerCard user={gameData?.whitePlayer} />

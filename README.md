@@ -16,7 +16,8 @@ A full-stack, real-time chess platform built with React, Node.js/Express, Postgr
 - **Reconnect and spectating**: after a page reload, the client asks the server for the current game state. Other users can open `/game/:gameID` to watch a game live.
 - **In-game chat**: chat in the game room, with each message labelled White, Black or Spectator.
 - **Game page UI**: move history, a board flip button, a result summary and read-only replay of finished games.
-- **Planned**: time controls, ELO calculation, game history, friends and choosing a promotion piece (pawns currently always promote to a queen).
+- **Pawn promotion**: when a pawn reaches the last rank, the player picks a queen, rook, bishop or knight. Clicking outside the picker or pressing Esc cancels the move.
+- **Planned**: time controls, ELO calculation, game history and friends.
 
 ## Tech Stack
 
@@ -169,7 +170,7 @@ Socket connections are authenticated with the `refreshToken` cookie, so the clie
 | server → client | `matchmaking:matchFound` | `{ game, whitePlayer, blackPlayer }` |
 | server → client | `matchmaking:cancelled`  | none (you queued from another tab) |
 | client → server | `game:sync-state`        | `gameID`: joins the room as a player or spectator |
-| client → server | `game:move`              | `gameID, from, to, promotion?` (e.g. `"e2", "e4"`; promotion defaults to `"q"`) |
+| client → server | `game:move`              | `gameID, from, to, promotion?` (e.g. `"e2", "e4"`; `promotion` is `"q"`, `"r"`, `"b"` or `"n"` for a pawn reaching the last rank, defaults to `"q"`) |
 | client → server | `game:resign`            | `gameID` |
 | client → server | `game:offer-draw`        | `gameID` (offering while the opponent's offer is pending accepts it) |
 | client → server | `game:respond-draw`      | `gameID, accept` (`true` / `false`) |

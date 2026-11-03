@@ -142,7 +142,8 @@ class gameService {
         return this.endGame(gameID, {status: "draw", drawReason})
     }
 
-    // promotion defaults to a queen until the client has a piece picker
+    // promotion is the piece chosen in the client's picker ("q", "r", "b" or "n");
+    // it is checked against chess.js's legal moves, a queen is used if it's missing
     async makeMove(userID, gameID, from, to, promotion = "q"){
         const entry = gameStore.get(gameID)
 
