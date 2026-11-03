@@ -5,9 +5,23 @@ const api = axios.create({
     withCredentials: true
 });
 
+// the refresh in progress; parallel callers share it, because the server rotates the
+// refresh token and a second refresh with the old cookie would fail and log the user out
+let refreshPromise = null
+
 // gets a new access token using the refreshToken cookie and stores it;
 // used by the 401 interceptor below and by the socket when its session is rejected
-export async function refreshSession() {
+export function refreshSession() {
+    if (!refreshPromise) {
+        refreshPromise = requestNewTokens().finally(() => {
+            refreshPromise = null
+        })
+    }
+
+    return refreshPromise
+}
+
+async function requestNewTokens() {
     const response = await axios.post(
         'http://localhost:3000/api/refresh',
         {},
