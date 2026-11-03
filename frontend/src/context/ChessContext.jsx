@@ -26,9 +26,13 @@ export default function ChessProvider({ children }) {
     useEffect(() => {
         if (!gameID || gameID === "undefined") return
 
+        // set when the player opens another game (or leaves) before this reply arrives
+        let isStale = false
+
         async function fetchGame() {
             try {
                 const res = await api.get(`/game/${gameID}`)
+                if (isStale) return
 
                 setIsReadOnly(FINISHED_STATUSES.includes(res.data.game.status))
 
@@ -41,6 +45,10 @@ export default function ChessProvider({ children }) {
         }
 
         fetchGame()
+
+        return () => {
+            isStale = true
+        }
     }, [gameID])
 
     useEffect(() => {

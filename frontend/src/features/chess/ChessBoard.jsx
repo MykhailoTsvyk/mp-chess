@@ -34,7 +34,9 @@ export default function ChessBoard(){
     if (gameData?.blackPlayer?.id === user.id) myColor = "b"
 
     const [selectedSquare, setSelectedSquare] = useState('')
-    const legalMoves = myColor === game.turn() && selectedSquare ? game.moves({ square: selectedSquare.coordinate, verbose: true }) : []
+    // a finished game is read-only, even if its final position has this player to move
+    const canMove = !isGameOver && myColor === game.turn()
+    const legalMoves = canMove && selectedSquare ? game.moves({ square: selectedSquare.coordinate, verbose: true }) : []
     const validMoves = legalMoves.map(m => m.to)
 
     // {from, to} while the player picks a piece for a pawn reaching the last rank
@@ -89,7 +91,8 @@ export default function ChessBoard(){
 
                                             return (
                                                 <Square key={col}
-                                                        isLight={(rowIndex + colIndex) % 2 === 0}
+                                                        // indexes start at 0, so a1 is (0, 0): even sums are dark squares
+                                                        isLight={(rowIndex + colIndex) % 2 === 1}
                                                         coordinate={`${col + (rowIndex + 1)}`}
                                                         rankLabel={isLeftColumn ? rowIndex + 1 : null}
                                                         fileLabel={isBottomRow ? col : null}
