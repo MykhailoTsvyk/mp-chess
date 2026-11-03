@@ -76,13 +76,21 @@ export default function ChessBoard(){
                             [...Array(8)].map((row, rowIndex) => (
                                 <div className={`flex`} key={rowIndex}>
                                     {
-                                        columns.map((col, colIndex) => {
+                                        // a flipped board is rotated, not mirrored: files run h -> a from the left
+                                        (isFlipped ? [...columns].reverse() : columns).map((col, displayIndex) => {
+                                            const colIndex = columns.indexOf(col)
                                             const piece = board[rowIndex][colIndex]
+
+                                            // coordinates are shown on the row and column that are at the bottom / on the left on screen
+                                            const isBottomRow = rowIndex === (isFlipped ? 7 : 0)
+                                            const isLeftColumn = displayIndex === 0
 
                                             return (
                                                 <Square key={col}
                                                         isLight={(rowIndex + colIndex) % 2 === 0}
                                                         coordinate={`${col + (rowIndex + 1)}`}
+                                                        rankLabel={isLeftColumn ? rowIndex + 1 : null}
+                                                        fileLabel={isBottomRow ? col : null}
                                                         piece={piece ? piece : null}
                                                         selectedSquare={selectedSquare}
                                                         setSelectedSquare={setSelectedSquare}
