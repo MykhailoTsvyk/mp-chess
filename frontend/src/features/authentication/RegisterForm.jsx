@@ -1,13 +1,18 @@
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { registerUser } from "../../api/authService.js";
-import {useNavigate} from "react-router";
+import { getErrorMessage } from "../../api/errors.js";
+import {useLocation, useNavigate} from "react-router";
 
 export default function RegisterForm({ changePage }) {
     const currentYear = new Date().getFullYear()
     const { login } = useAuth()
     const navigate = useNavigate()
+    const location = useLocation()
     const [username, setUsername] = useState('')
+
+    // set by ProtectedRoute when a logged-out user opened a protected page
+    const redirectTo = location.state?.from?.pathname || "/"
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [confirmPassword, setConfirmPassword] = useState('')
@@ -32,9 +37,9 @@ export default function RegisterForm({ changePage }) {
         try {
             const data = await registerUser(payload)
             login(data)
-            navigate("/")
+            navigate(redirectTo, {replace: true})
         } catch (err) {
-            setError(err.response?.data?.message || 'Registration failed')
+            setError(getErrorMessage(err, 'Registration failed'))
         }
     }
 

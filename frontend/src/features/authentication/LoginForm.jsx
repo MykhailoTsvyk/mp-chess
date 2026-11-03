@@ -1,6 +1,7 @@
 import { loginUser } from "../../api/authService.js";
+import { getErrorMessage } from "../../api/errors.js";
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { useAuth } from "../../context/AuthContext.jsx";
 
 export default function LoginForm({ changePage }) {
@@ -10,7 +11,11 @@ export default function LoginForm({ changePage }) {
     const [error, setError] = useState('')
 
     const navigate = useNavigate()
+    const location = useLocation()
     const { login } = useAuth()
+
+    // set by ProtectedRoute when a logged-out user opened a protected page
+    const redirectTo = location.state?.from?.pathname || "/"
 
     async function handleSubmit(e) {
         e.preventDefault()
@@ -24,9 +29,9 @@ export default function LoginForm({ changePage }) {
         try {
             const data = await loginUser(payload)
             login(data)
-            navigate('/')
+            navigate(redirectTo, {replace: true})
         } catch (err) {
-            setError(err.response?.data?.message || 'Login failed')
+            setError(getErrorMessage(err, 'Login failed'))
         }
     }
 

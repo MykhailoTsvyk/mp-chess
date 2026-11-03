@@ -20,7 +20,14 @@ class userService {
                 user: newUserDto
             }
         } catch (e) {
-            return {success: false, message: e.message}
+            // 23505 = unique_violation (username or email already registered)
+            if (e.code === "23505") {
+                const field = e.constraint?.includes("email") ? "Email" : "Username"
+                const error = new Error(`${field} is already taken`)
+                error.status = 409
+                throw error
+            }
+            throw e
         }
     }
 
@@ -67,6 +74,7 @@ class userService {
             return `${process.env.CLIENT_URL}/activation/${token}`
         } catch (e) {
             console.log(e)
+            throw e
         }
     }
 
