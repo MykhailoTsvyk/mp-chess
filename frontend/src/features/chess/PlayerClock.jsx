@@ -19,8 +19,10 @@ export default function PlayerClock({color}) {
     const {gameData, isGameOver} = useChess()
     const clock = gameData?.clock
 
-    // live games get the clock over the socket; finished games only have the saved seconds
-    const savedSeconds = color === "w" ? gameData?.game?.white_time_remaining : gameData?.game?.black_time_remaining
+    // live games get the clock over the socket; finished games only have the saved seconds.
+    // a live game's saved seconds are still the starting time, so they're not shown
+    const savedSeconds = !isGameOver ? null
+        : color === "w" ? gameData?.game?.white_time_remaining : gameData?.game?.black_time_remaining
     const serverMs = clock ? (color === "w" ? clock.white : clock.black) : (savedSeconds != null ? savedSeconds * 1000 : null)
     const isRunning = Boolean(clock?.running && clock.turn === color && !isGameOver)
 

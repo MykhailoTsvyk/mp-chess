@@ -31,7 +31,10 @@ export default function ChessProvider({ children }) {
                 const res = await api.get(`/game/${gameID}`)
 
                 setIsReadOnly(FINISHED_STATUSES.includes(res.data.game.status))
-                setGameData(res.data)
+
+                // the DB only has the starting position and times of a live game (it's saved
+                // when the game ends), so it must not replace live socket data that arrived first
+                setGameData(prev => prev?.clock ? prev : res.data)
             } catch (e) {
                 console.error("Failed to fetch game:", e)
             }
