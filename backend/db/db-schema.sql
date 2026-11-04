@@ -71,6 +71,8 @@ CREATE TABLE games (
     black_elo_before INT,
     black_elo_after INT,
 
+    ended_at TIMESTAMPTZ,
+
     CONSTRAINT fk_white_player FOREIGN KEY (white_player) REFERENCES users(id) ON DELETE SET NULL,
     CONSTRAINT fk_black_player FOREIGN KEY (black_player) REFERENCES users(id) ON DELETE SET NULL,
     CONSTRAINT fk_winner FOREIGN KEY (winner_id) REFERENCES users(id) ON DELETE SET NULL,

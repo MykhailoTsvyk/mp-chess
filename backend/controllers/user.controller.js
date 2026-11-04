@@ -127,6 +127,34 @@ class userController {
         res.status(501).json({message: "Not implemented"})
     }
 
+    async getUserMatches(req, res) {
+        const userID = Number(req.params.id)
+
+        if (!Number.isInteger(userID)) {
+            return res.status(400).json({message: "Invalid user id"})
+        }
+
+        const limit = req.query.limit === undefined ? 5 : Number(req.query.limit)
+        const offset = req.query.offset === undefined ? 0 : Number(req.query.offset)
+
+        if (!Number.isInteger(limit) || limit < 1 || limit > 50 || !Number.isInteger(offset) || offset < 0) {
+            return res.status(400).json({message: "Invalid limit or offset"})
+        }
+
+        try {
+            const matches = await userService.getUserMatches(userID, limit, offset)
+
+            if (!matches) {
+                return res.status(404).json({message: "User not found"})
+            }
+
+            return res.json(matches)
+        } catch (e) {
+            console.log(e)
+            return res.status(500).json({message: "Internal server error, no matches retrieved"})
+        }
+    }
+
 }
 
 export default new userController()

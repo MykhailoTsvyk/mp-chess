@@ -4,6 +4,10 @@ import tokenService from "./token.service.js";
 import UserDto from "../dtos/user.dto.js";
 import crypto from "crypto";
 
+function ratingChange(before, after) {
+    return before != null && after != null ? after - before : null
+}
+
 class userService {
     async registerUser (username, email, rawPass){
         try {
@@ -182,6 +186,65 @@ class userService {
             console.log(e)
             throw e
         }
+    }
+
+    async getUserMatches(userID, limit = 5, offset = 0) {
+        const user = await db.oneOrNone(`SELECT id FROM users WHERE id = $1`, [userID])
+        if (!user) {
+            return null
+        }
+
+        const rows = await db.any(`
+            SELECT g.id, g.status, g.draw_reason, g.rating_category, g.ended_at,
+                   g.initial_time_control, g.increment_time_control,
+                   COALESCE(cardinality(g.moves), 0) AS plies,
+                   CASE WHEN g.white_player = $1 THEN 'white' ELSE 'black' END AS color,
+                   CASE
+                       WHEN g.status = 'draw' THEN 'draw'
+                       WHEN g.winner_id = $1 THEN 'win'
+                       ELSE 'loss'
+                   END AS result,
+                   g.white_elo_before, g.white_elo_after,
+                   g.black_elo_before, g.black_elo_after,
+                   w.id AS white_id, w.username AS white_username,
+                   b.id AS black_id, b.username AS black_username
+            FROM games g
+            LEFT JOIN users w ON w.id = g.white_player
+            LEFT JOIN users b ON b.id = g.black_player
+            WHERE (g.white_player = $1 OR g.black_player = $1)
+              AND g.status IN ('finished', 'draw')
+            ORDER BY g.ended_at DESC NULLS LAST, g.id
+            LIMIT $2 OFFSET $3`, [userID, limit, offset])
+
+        return rows.map((row) => {
+            const isWhite = row.color === "white"
+
+            return {
+                id: row.id,
+                result: row.result,
+                color: row.color,
+                draw_reason: row.draw_reason,
+                white: {
+                    id: row.white_id,
+                    username: row.white_username,
+                    rating: row.white_elo_before,
+                    change: ratingChange(row.white_elo_before, row.white_elo_after)
+                },
+                black: {
+                    id: row.black_id,
+                    username: row.black_username,
+                    rating: row.black_elo_before,
+                    change: ratingChange(row.black_elo_before, row.black_elo_after)
+                },
+                rating_category: row.rating_category,
+                time_control: {initial: row.initial_time_control, increment: row.increment_time_control},
+                rating_change: isWhite
+                    ? ratingChange(row.white_elo_before, row.white_elo_after)
+                    : ratingChange(row.black_elo_before, row.black_elo_after),
+                moves: Math.ceil(row.plies / 2),
+                ended_at: row.ended_at
+            }
+        })
     }
 
 }

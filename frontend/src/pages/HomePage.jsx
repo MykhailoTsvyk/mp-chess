@@ -133,7 +133,7 @@ export default function HomePage() {
                     </div>
                     {isMatchmaking && (<MatchmakingWindow cancelMatchmaking={setIsMatchmaking} timeControl={timeControl}/>)}
 
-                    <GameHistory/>
+                    <GameHistory userID={user.id}/>
                 </div>
             </MainLayout>
         )

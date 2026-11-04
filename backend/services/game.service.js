@@ -252,7 +252,8 @@ class gameService {
                         white_time_remaining = $6,
                         black_time_remaining = $7,
                         white_elo_after = $8,
-                        black_elo_after = $9
+                        black_elo_after = $9,
+                        ended_at = NOW()
                     WHERE id = $10`, [
                     entry.game.status,
                     entry.game.winner_id,

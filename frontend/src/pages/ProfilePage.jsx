@@ -123,7 +123,7 @@ export default function ProfilePage() {
                         </div>
                     </div>
 
-                    <GameHistory/>
+                    <GameHistory key={profileID} userID={profileID}/>
 
                     {/* Friends Tab */}
 
