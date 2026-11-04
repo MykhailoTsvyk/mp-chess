@@ -3,7 +3,9 @@ import themeIcon from "../assets/images/icons/theme-change.svg"
 import notificationIcon from "../assets/images/icons/notification.svg"
 import { useTheme } from "../hooks/useTheme.jsx"
 import { useAuth } from "../context/AuthContext.jsx"
-import {useNavigate} from "react-router";
+import {Link, useNavigate} from "react-router";
+
+const PLAY_SECTION = {pathname: "/", hash: "#play"}
 
 export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -45,7 +47,7 @@ export default function Header() {
 
                     {/* Desktop Navigation Links */}
                     <nav className="hidden md:flex space-x-5 text-sm font-medium text-ui-secondary">
-                        <a href="#play" className="hover:text-ui-primary transition-colors py-1">Play</a>
+                        <Link to={PLAY_SECTION} className="hover:text-ui-primary transition-colors py-1">Play</Link>
                         <a href="#friends" className="hover:text-ui-primary transition-colors flex items-center py-1">Friends</a>
                         <a href="#leaderboard" className="hover:text-ui-primary transition-colors py-1">Leaderboard</a>
                     </nav>
@@ -54,20 +56,10 @@ export default function Header() {
                 {/* RIGHT: Profile, ELO, Notifications */}
                 <div className="flex items-center space-x-1.5 sm:space-x-3 md:space-x-4 shrink-0">
 
-                    {/* Elo Rating Badge */}
                     {isAuthenticated && (
-                        <>
-                            <div className="cursor-pointer bg-ui-main border border-ui-main hover:bg-ui-surface hover:border-ui-border hover:opacity-90 transition-all duration-200 px-2
-                                            py-0.5 sm:px-3 sm:py-1 rounded-full flex items-center space-x-1 text-xs md:text-sm font-semibold text-accent-ui-color shadow-sm">
-                                {/* blitz is the most played category; all three are on the home page and profile */}
-                                <span className="hidden xs:inline">Blitz</span>
-                                <span>{user?.ratings?.blitz ?? "–"}</span>
-                            </div>
-
-                            <button className="shrink-0 p-1 text-ui-secondary hover:text-ui-primary transition-colors focus:outline-none rounded-full hover:bg-ui-interactive">
-                                <img src={notificationIcon} alt="" className={`w-5 h-5 ${theme === "dark" ? "invert" : ""}`} />
-                            </button>
-                        </>
+                        <button className="shrink-0 p-1 text-ui-secondary hover:text-ui-primary transition-colors focus:outline-none rounded-full hover:bg-ui-interactive">
+                            <img src={notificationIcon} alt="" className={`w-5 h-5 ${theme === "dark" ? "invert" : ""}`} />
+                        </button>
                     )}
 
                     {/* Theme Toggle */}
@@ -98,13 +90,13 @@ export default function Header() {
             {/* MOBILE DROPDOWN MENU */}
             {isMenuOpen && (
                 <div className="md:hidden absolute top-full inset-x-0 bg-ui-surface border-b border-ui-main shadow-lg py-2 flex flex-col px-4 space-y-2 z-50">
-                    <a
-                        href="#play"
+                    <Link
+                        to={PLAY_SECTION}
                         onClick={() => setIsMenuOpen(false)}
                         className="text-ui-secondary hover:text-ui-primary hover:bg-ui-interactive p-2 rounded transition-colors text-sm font-medium"
                     >
                         Play
-                    </a>
+                    </Link>
                     <a
                         href="#friends"
                         onClick={() => setIsMenuOpen(false)}

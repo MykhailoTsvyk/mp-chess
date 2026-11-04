@@ -1,5 +1,5 @@
 import MainLayout from "../layout/MainLayout.jsx"
-import { Link, useNavigate } from "react-router"
+import { Link, useLocation, useNavigate } from "react-router"
 import { useAuth } from "../context/AuthContext.jsx"
 import GameHistory from "../components/GameHistory.jsx";
 import MatchmakingWindow from "../components/MatchmakingWindow.jsx";
@@ -12,6 +12,7 @@ import {getActiveGame} from "../api/gameService.js";
 export default function HomePage() {
     const {user, isAuthenticated} = useAuth()
     const navigate = useNavigate()
+    const location = useLocation()
     const [isMatchmaking, setIsMatchmaking] = useState(false)
     const [timeControl, setTimeControl] = useState(DEFAULT_TIME_CONTROL)
     // game in progress for this user: {id, timeControl, color, opponent}, or null
@@ -37,6 +38,14 @@ export default function HomePage() {
             }))
             .catch((e) => console.error("Failed to load ratings:", e))
     }, [isAuthenticated, user?.id])
+
+    // React Router doesn't scroll to #hash links; location.key changes on every click,
+    // so the header's Play link scrolls again even when the page is already at /#play
+    useEffect(() => {
+        if (location.hash === "#play") {
+            document.getElementById("play")?.scrollIntoView({behavior: "smooth", block: "start"})
+        }
+    }, [location.key, location.hash])
 
     // a player in a game is sent back to it instead of searching for a new one
     function handlePlay() {
@@ -101,7 +110,7 @@ export default function HomePage() {
                     )}
 
                     {/* Play Panel */}
-                    <div className="bg-ui-surface border-2 border-ui-border rounded-lg p-8 shadow-md text-center">
+                    <div id="play" className="scroll-mt-6 bg-ui-surface border-2 border-ui-border rounded-lg p-8 shadow-md text-center">
                         <h2 className="text-xl font-bold text-ui-primary mb-4">Start Matchmaking</h2>
 
                         {/* Time control: players are only matched with the same choice */}
