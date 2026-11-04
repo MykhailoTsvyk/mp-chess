@@ -1,4 +1,4 @@
-import {Link} from "react-router";
+import {Link, useNavigate} from "react-router";
 
 export const GAME_ROW_GRID = "grid grid-cols-[1fr_3.5rem_3rem_6rem] sm:grid-cols-[4.5rem_1fr_4.5rem_4rem_7rem] items-center gap-x-3 sm:gap-x-4"
 
@@ -39,7 +39,11 @@ function PlayerLine({player, pieceColor, isViewedUser}) {
         <div className="flex items-center gap-2 min-w-0">
             <span className={`w-3 h-3 shrink-0 rounded-sm border ${square}`} title={pieceColor}/>
             {player.id ? (
-                <Link to={`/profile/${player.id}`} className={`${nameClass} hover:text-ui-accent`}>
+                <Link
+                    to={`/profile/${player.id}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className={`${nameClass} hover:text-ui-accent`}
+                >
                     {player.username}
                 </Link>
             ) : (
@@ -59,9 +63,27 @@ function PlayerLine({player, pieceColor, isViewedUser}) {
 
 export default function GameCard({ game }) {
     const result = RESULT_STYLES[game.result]
+    const navigate = useNavigate()
+
+    function openGame() {
+        navigate(`/game/${game.id}`)
+    }
+
+    function handleKeyDown(e) {
+        if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault()
+            openGame()
+        }
+    }
 
     return (
-        <div className={`${GAME_ROW_GRID} px-4 py-3 border-b border-ui-border last:border-b-0 even:bg-ui-main transition-colors hover:bg-ui-interactive cursor-pointer`}>
+        <div
+            role="link"
+            tabIndex={0}
+            onClick={openGame}
+            onKeyDown={handleKeyDown}
+            className={`${GAME_ROW_GRID} px-4 py-3 border-b border-ui-border last:border-b-0 even:bg-ui-main transition-colors hover:bg-ui-interactive cursor-pointer focus:outline-none focus-visible:bg-ui-interactive`}
+        >
             <div className="hidden sm:flex flex-col items-center text-xs text-ui-secondary leading-tight">
                 <span className="font-semibold text-ui-primary">{formatTimeControl(game.time_control)}</span>
                 {game.rating_category && <span>{CATEGORY_LABELS[game.rating_category]}</span>}
