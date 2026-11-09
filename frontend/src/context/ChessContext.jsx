@@ -80,9 +80,9 @@ export default function ChessProvider({ children }) {
     }, [socket, gameID, isReadOnly])
 
     return (
-        <ChessContext.Provider value={{ gameData, setGameID, isGameOver, isReadOnly }}>
+        <ChessContext value={{ gameData, setGameID, isGameOver, isReadOnly }}>
             {children}
-        </ChessContext.Provider>
+        </ChessContext>
     )
 }
 
