@@ -9,6 +9,7 @@ import {socketAuthMiddleware} from "./middleware/auth.middleware.js";
 import {registerSocketHandlers} from "./socket/socket.js";
 import {initTokenCleanupJob} from "./jobs/verificationTokens.job.js";
 import gameRoutes from "./routes/game.routes.js";
+import notificationRoutes from "./routes/notification.routes.js"
 
 const app = express()
 const port = process.env.PORT || 3000
@@ -23,6 +24,7 @@ app.use(express.json())
 app.use(cookieParser())
 app.use("/api", userRoutes)
 app.use("/api", gameRoutes)
+app.use("/api/notifications", notificationRoutes)
 
 await EmailService.verify()
 

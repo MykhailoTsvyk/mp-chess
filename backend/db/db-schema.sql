@@ -40,6 +40,16 @@ CREATE TABLE friendships (
     CONSTRAINT check_not_self CHECK (user_1 <> user_2)
 );
 
+CREATE TABLE notifications (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL, -- recipient
+    type VARCHAR(50) NOT NULL, -- e.g. 'friend_request'; allowed values are checked in notification.service
+    data JSONB NOT NULL DEFAULT '{}',
+    read_at TIMESTAMPTZ, -- NULL while unread
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT fk_notification_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 CREATE TYPE draw_reason AS ENUM ('stalemate', 'insufficient_material', 'threefold_repetition', 'fifty_move_rule', 'agreement');
 CREATE TYPE match_status AS ENUM ('pending', 'active', 'draw', 'finished', 'aborted');
 CREATE TYPE rating_category AS ENUM ('bullet', 'blitz', 'rapid');

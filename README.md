@@ -2,7 +2,7 @@
 
 A full-stack, real-time chess platform built with React, Node.js/Express, PostgreSQL and Socket.io. Players register, verify their email, queue for a match and play live against other players, with ELO ratings and game history.
 
-> **Status:** work in progress. Authentication, email verification, matchmaking with time controls, live gameplay (with chat and spectating) and Elo ratings work. Game history is still being built.
+> **Status:** work in progress. Authentication, email verification, matchmaking with time controls, live gameplay (with chat and spectating), Elo ratings and match history work. The notification backend is done; its UI still uses mock data.
 
 ## Features
 
@@ -21,7 +21,9 @@ A full-stack, real-time chess platform built with React, Node.js/Express, Postgr
 - **Drag and drop**: pieces can be dragged (mouse or touch) or moved by clicking a piece and then a square. Starting a drag highlights the piece's legal moves, the piece follows the pointer and leaves its square empty, and dropping on an illegal square puts it back.
 - **Pawn promotion**: when a pawn reaches the last rank, the player picks a queen, rook, bishop or knight. Clicking outside the picker or pressing Esc cancels the move.
 - **Elo ratings per category**: each player has a Bullet, Blitz and Rapid rating (starting at 800). A time control's category is based on its estimated length (`initial + 40 × increment`): under 3 min is Bullet, under 8 min is Blitz, the rest is Rapid. After a win, loss or draw, both ratings change by the standard Elo formula with K = 32; aborted games aren't rated. The game and both new ratings are saved in one database transaction, and each game stores both players' ratings before and after. The summary window shows each player's rating change.
-- **Planned**: game history and friends.
+- **Match history**: the home and profile pages list a player's finished games, 5 at a time with a "Show more" button: both players with their ratings and rating changes, the result (W / L / D), the number of moves and the date. Clicking a game opens its replay.
+- **Notifications (backend)**: each notification is saved as a row for its recipient, with a `type` and JSON `data` instead of ready-made text, so the client decides how to show it. After saving, the service fires an internal event; the socket layer listens for it and pushes the notification to the recipient's personal room (`user:<id>`), which every tab of that user joins on connect. Offline users get it from the REST API on their next load. Users can only read and mark their own notifications.
+- **Planned**: friends (the first real notification type) and connecting the notification dropdown to the API.
 
 ## Tech Stack
 
@@ -38,13 +40,15 @@ A full-stack, real-time chess platform built with React, Node.js/Express, Postgr
 ```
 chess-app/
 ├── backend/
+│   ├── config/        # Time controls and notification types
 │   ├── controllers/   # Express route handlers
-│   ├── db/            # pg-promise connection + db-schema.sql
+│   ├── db/            # pg-promise connection, db-schema.sql and migrations
 │   ├── dtos/          # Data shapes sent to the client
+│   ├── events/        # Shared EventEmitter between services and the socket layer
 │   ├── jobs/          # Cron jobs (expired token cleanup)
 │   ├── middleware/    # Request validation, HTTP + socket auth
 │   ├── routes/        # REST API routes (mounted at /api)
-│   ├── services/      # Business logic (users, tokens, email, games, matchmaking)
+│   ├── services/      # Business logic (users, tokens, email, games, matchmaking, notifications)
 │   ├── socket/        # Socket.io event handlers (matchmaking, game, chat)
 │   ├── store/         # In-memory store of active games
 │   ├── utils/         # Nodemailer transporter
@@ -174,8 +178,15 @@ All routes are prefixed with `/api`.
 | GET    | `/game/:gameID`       | none           | Get a game and both players                     |
 | GET    | `/active-game`        | Bearer token   | The game you're playing right now: `{ activeGame: { id, timeControl, color, opponent } }`, or `{ activeGame: null }` |
 | GET    | `/user/:id`           | Bearer token   | Get a profile with `ratings` (`{ bullet, blitz, rapid }`, each `{ rating, games }`) and stats `{ games_played, wins, losses, draws }`; `email` and `is_activated` only on your own profile |
+| GET    | `/recent-matches/:id` | Bearer token   | A user's finished games, newest first. Query: `limit` (1–50, default 5), `offset` (default 0) |
 | PUT    | `/user/:id`           | Bearer token   | Update a user (not implemented yet, returns 501) |
 | DELETE | `/user/:id`           | Bearer token   | Delete a user (not implemented yet, returns 501) |
+| GET    | `/notifications/:limit?` | Bearer token | Your notifications, newest first: `{ notifications: [...] }`. `limit` is optional (1–50, default 10) |
+| GET    | `/notifications/unread-count` | Bearer token | `{ unreadCount }` |
+| POST   | `/notifications/read/:notificationID` | Bearer token | Mark one of your notifications as read: 204, or 404 if it doesn't exist or isn't yours |
+| POST   | `/notifications/read-all` | Bearer token | Mark all your notifications as read: 204 |
+
+A notification looks like `{ id, user_id, type, data, read_at, created_at }`. `read_at` is `null` while unread. `type` is one of the values in [backend/config/notificationTypes.js](backend/config/notificationTypes.js).
 
 Protected routes expect an `Authorization: Bearer <accessToken>` header. The frontend Axios instance adds it automatically and calls `/refresh` again when it gets a 401.
 
@@ -199,6 +210,7 @@ Socket connections are authenticated with the `refreshToken` cookie, so the clie
 | client → server | `game:leave`             | `gameID`: sent when the game page closes; starts the 60s timer for players |
 | client → server | `game:sent-message`      | `{ gameID, text }`: the server adds author, role and timestamp |
 | server → client | `game:updated`           | `{ game, whitePlayer, blackPlayer, messages, drawOffer, drawBlocked, leftPlayers, clock }` (`leftPlayers` maps a user ID to the time its timeout ends; `clock` is `{ timeControl, white, black, turn, running, firstMoveMs }` with times in milliseconds) |
+| server → client | `notification:new`       | the saved notification, sent to every open tab of its recipient |
 
 Active games are kept in memory ([backend/store/game.store.js](backend/store/game.store.js)) and written to the `games` table when they start and finish. Games still in progress are lost if the server restarts.
 
@@ -210,7 +222,8 @@ The schema is in [backend/db/db-schema.sql](backend/db/db-schema.sql):
 - `activation_tokens`: email verification tokens (1-hour expiry)
 - `tokens`: one refresh token per user
 - `friendships`: friend requests (`pending` / `accepted` / `rejected`)
-- `games`: players, status, result/draw reason, move list, current FEN, time-control fields, `rating_category` and each player's rating before and after the game
+- `games`: players, status, result/draw reason, move list, current FEN, time-control fields, `rating_category`, each player's rating before and after the game, and `ended_at`
+- `notifications`: one row per recipient with `type`, JSON `data`, `read_at` (`NULL` while unread) and `created_at`
 
 Changes to an existing database are in [backend/db/migrations/](backend/db/migrations/). Run each file once, in order, for example in pgAdmin's Query Tool. A new database created from `db-schema.sql` doesn't need them.
 
