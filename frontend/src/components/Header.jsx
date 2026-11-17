@@ -1,9 +1,11 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import themeIcon from "../assets/images/icons/theme-change.svg"
 import notificationIcon from "../assets/images/icons/notification.svg"
 import { useTheme } from "../hooks/useTheme.jsx"
 import { useAuth } from "../context/AuthContext.jsx"
 import {Link, useNavigate} from "react-router";
+import NotificationDropdown from "./notifications/NotificationDropdown.jsx";
+import {useNotifications} from "../context/NotificationContext.jsx";
 
 const PLAY_SECTION = {pathname: "/", hash: "#play"}
 
@@ -12,6 +14,32 @@ export default function Header() {
     const [theme, toggleTheme] = useTheme()
     const {user, isAuthenticated} = useAuth()
     const navigate = useNavigate()
+    const {unreadCount} = useNotifications()
+    const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
+    const notificationsRef = useRef(null)
+
+    // while the dropdown is open, a click outside the bell and panel or Escape closes it
+    useEffect(() => {
+        if (!isNotificationsOpen) return
+
+        function handleClickOutside(e) {
+            if (!notificationsRef.current?.contains(e.target)) {
+                setIsNotificationsOpen(false)
+            }
+        }
+
+        function handleEscape(e) {
+            if (e.key === "Escape") setIsNotificationsOpen(false)
+        }
+
+        document.addEventListener("mousedown", handleClickOutside)
+        document.addEventListener("keydown", handleEscape)
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside)
+            document.removeEventListener("keydown", handleEscape)
+        }
+    }, [isNotificationsOpen])
 
     return (
         <header className="w-full bg-ui-surface text-ui-primary border-b border-ui-subtle relative shadow-sm z-50">
@@ -57,9 +85,28 @@ export default function Header() {
                 <div className="flex items-center space-x-1.5 sm:space-x-3 md:space-x-4 shrink-0">
 
                     {isAuthenticated && (
-                        <button className="shrink-0 p-1 text-ui-secondary hover:text-ui-primary transition-colors focus:outline-none rounded-full hover:bg-ui-interactive">
-                            <img src={notificationIcon} alt="" className={`w-5 h-5 ${theme === "dark" ? "invert" : ""}`} />
-                        </button>
+                        <div ref={notificationsRef} className="sm:relative shrink-0">
+                            <button
+                                type="button"
+                                onClick={() => setIsNotificationsOpen((open) => !open)}
+                                aria-label="Notifications"
+                                aria-expanded={isNotificationsOpen}
+                                className={`relative p-1 text-ui-secondary hover:text-ui-primary transition-colors focus:outline-none rounded-full hover:bg-ui-interactive cursor-pointer ${
+                                    isNotificationsOpen ? "bg-ui-interactive" : ""
+                                }`}
+                            >
+                                <img src={notificationIcon} alt="" className={`w-5 h-5 ${theme === "dark" ? "invert" : ""}`} />
+                                {unreadCount > 0 && (
+                                    <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-ui-danger text-white text-[10px] font-bold leading-4 text-center">
+                                        {unreadCount > 9 ? "9+" : unreadCount}
+                                    </span>
+                                )}
+                            </button>
+
+                            {isNotificationsOpen && (
+                                <NotificationDropdown onClose={() => setIsNotificationsOpen(false)}/>
+                            )}
+                        </div>
                     )}
 
                     {/* Theme Toggle */}
