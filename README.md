@@ -2,7 +2,7 @@
 
 A full-stack, real-time chess platform built with React, Node.js/Express, PostgreSQL and Socket.io. Players register, verify their email, queue for a match and play live against other players, with ELO ratings and game history.
 
-> **Status:** work in progress. Authentication, email verification, matchmaking with time controls, live gameplay (with chat and spectating), Elo ratings and match history work. The notification backend is done; its UI still uses mock data.
+> **Status:** work in progress. Authentication, email verification, matchmaking with time controls, live gameplay (with chat and spectating), Elo ratings, match history and the notification system work. No feature sends notifications yet; friends will be the first.
 
 ## Features
 
@@ -22,8 +22,9 @@ A full-stack, real-time chess platform built with React, Node.js/Express, Postgr
 - **Pawn promotion**: when a pawn reaches the last rank, the player picks a queen, rook, bishop or knight. Clicking outside the picker or pressing Esc cancels the move.
 - **Elo ratings per category**: each player has a Bullet, Blitz and Rapid rating (starting at 800). A time control's category is based on its estimated length (`initial + 40 × increment`): under 3 min is Bullet, under 8 min is Blitz, the rest is Rapid. After a win, loss or draw, both ratings change by the standard Elo formula with K = 32; aborted games aren't rated. The game and both new ratings are saved in one database transaction, and each game stores both players' ratings before and after. The summary window shows each player's rating change.
 - **Match history**: the home and profile pages list a player's finished games, 5 at a time with a "Show more" button: both players with their ratings and rating changes, the result (W / L / D), the number of moves and the date. Clicking a game opens its replay.
-- **Notifications (backend)**: each notification is saved as a row for its recipient, with a `type` and JSON `data` instead of ready-made text, so the client decides how to show it. After saving, the service fires an internal event; the socket layer listens for it and pushes the notification to the recipient's personal room (`user:<id>`), which every tab of that user joins on connect. Offline users get it from the REST API on their next load. Users can only read and mark their own notifications.
-- **Planned**: friends (the first real notification type) and connecting the notification dropdown to the API.
+- **Notifications**: each notification is saved as a row for its recipient, with a `type` and JSON `data` instead of ready-made text, so the client decides how to show it. After saving, the service fires an internal event; the socket layer listens for it and pushes the notification to the recipient's personal room (`user:<id>`), which every tab of that user joins on connect. Offline users get it from the REST API on their next load. Users can only read and mark their own notifications. In the header, a bell shows the unread count and opens a dropdown that loads the latest 50 notifications and adds new ones live. Opening a notification marks it as read, and there's a "Mark all as read" button. Both update the UI right away and roll back if the request fails.
+- **Player profile links**: player names on the game page and in match history link to their profiles.
+- **Planned**: friends (the first notification type that is actually sent).
 
 ## Tech Stack
 
@@ -57,7 +58,7 @@ chess-app/
     └── src/
         ├── api/       # Axios instance (auto refresh on 401) + auth service
         ├── components/
-        ├── context/   # AuthContext, SocketContext, ChessContext (game state)
+        ├── context/   # AuthContext, SocketContext, ChessContext (game state), NotificationContext
         ├── features/  # authentication forms, chess board, move history
         ├── hooks/
         ├── layout/
