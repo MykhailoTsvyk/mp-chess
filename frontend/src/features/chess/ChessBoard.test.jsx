@@ -1,5 +1,6 @@
 import {beforeEach, describe, expect, test, vi} from "vitest"
 import {fireEvent, render, screen} from "@testing-library/react"
+import {MemoryRouter} from "react-router"
 import ChessBoard from "./ChessBoard.jsx"
 import {BLACK, liveGame, SPECTATOR, WHITE} from "../../test/gameData.js"
 
@@ -13,7 +14,7 @@ const PROMOTION_FEN = "8/4P3/8/8/8/8/8/k6K w - - 0 1"
 function renderBoard({user = WHITE, gameData = liveGame(), isGameOver = false} = {}) {
     mocks.auth = {user}
     mocks.chess = {gameData, isGameOver}
-    return render(<ChessBoard/>)
+    return render(<MemoryRouter><ChessBoard/></MemoryRouter>)
 }
 
 const square = (coordinate) => document.querySelector(`[data-square="${coordinate}"]`)
