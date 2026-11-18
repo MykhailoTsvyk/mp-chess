@@ -80,7 +80,11 @@ api.interceptors.response.use(
                 console.error("Refresh failed:", refreshError)
 
                 localStorage.removeItem('token')
-                window.location.href = '/authentication'
+                localStorage.removeItem('user')
+
+                if (window.location.pathname !== '/authentication') {
+                    window.location.href = '/authentication'
+                }
 
                 return Promise.reject(refreshError)
             }
