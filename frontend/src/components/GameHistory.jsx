@@ -72,11 +72,11 @@ export default function GameHistory({userID}){
     } else {
         content = (
             <>
-                <div className={`${GAME_ROW_GRID} px-4 py-2 text-sm font-semibold text-center text-ui-secondary border-b border-ui-border`}>
+                <div className={`${GAME_ROW_GRID} py-2 text-xs sm:text-sm font-semibold text-center text-ui-secondary border-b border-ui-border`}>
                     <span className="hidden sm:block"></span>
                     <span className="text-left">Players</span>
                     <span>Result</span>
-                    <span>Turns</span>
+                    <span className="hidden sm:block">Turns</span>
                     <span>Date</span>
                 </div>
 
@@ -91,7 +91,7 @@ export default function GameHistory({userID}){
 
     return(
         <div className="bg-ui-surface border-2 border-ui-border rounded-lg shadow-md overflow-hidden">
-            <h2 className="text-xl font-bold text-ui-primary px-6 py-4 border-b border-ui-border">
+            <h2 className="text-xl font-bold text-ui-primary px-4 sm:px-6 py-4 border-b border-ui-border">
                 Recent Matches
             </h2>
 

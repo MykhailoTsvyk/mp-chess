@@ -61,18 +61,18 @@ export default function HomePage() {
             <MainLayout>
                 <div className="w-full max-w-4xl mx-auto space-y-6 py-6">
                     {/* User Stats Banner */}
-                    <div className="bg-ui-surface border-2 border-ui-border rounded-lg p-6 shadow-md flex justify-between items-center">
-                        <div>
-                            <h1 className="text-2xl font-bold text-ui-primary">
+                    <div className="bg-ui-surface border-2 border-ui-border rounded-lg p-4 sm:p-6 shadow-md flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
+                        <div className="min-w-0 text-center sm:text-left">
+                            <h1 className="text-xl sm:text-2xl font-bold text-ui-primary break-words">
                                 Welcome back, <span className="text-ui-accent">{user?.username}</span>!
                             </h1>
                             <p className="text-sm text-ui-secondary">Ready for your next challenge?</p>
                         </div>
                         {/* the category of the selected time control is highlighted: that rating is at stake */}
-                        <div className="flex gap-2">
+                        <div className="grid grid-cols-3 gap-2 sm:flex sm:shrink-0">
                             {RATING_CATEGORIES.map(({id, label}) => (
                                 <div key={id}
-                                     className={`min-w-[4.5rem] text-center px-3 py-2 rounded-md border transition-colors ${
+                                     className={`min-w-0 sm:min-w-[4.5rem] text-center px-2 sm:px-3 py-2 rounded-md border transition-colors ${
                                          id === selectedCategory ? "border-ui-accent bg-ui-interactive" : "border-ui-border bg-ui-main"
                                      }`}
                                 >
@@ -110,7 +110,7 @@ export default function HomePage() {
                     )}
 
                     {/* Play Panel */}
-                    <div id="play" className="scroll-mt-6 bg-ui-surface border-2 border-ui-border rounded-lg p-8 shadow-md text-center">
+                    <div id="play" className="scroll-mt-6 bg-ui-surface border-2 border-ui-border rounded-lg p-4 sm:p-8 shadow-md text-center">
                         <h2 className="text-xl font-bold text-ui-primary mb-4">Start Matchmaking</h2>
 
                         {/* Time control: players are only matched with the same choice */}
@@ -120,13 +120,13 @@ export default function HomePage() {
                                         type="button"
                                         onClick={() => setTimeControl(id)}
                                         aria-pressed={timeControl === id}
-                                        className={`rounded-lg border-2 px-3 py-2 transition-colors cursor-pointer ${
+                                        className={`min-w-0 rounded-lg border-2 px-1 sm:px-3 py-2 transition-colors cursor-pointer ${
                                             timeControl === id
                                                 ? "border-ui-accent bg-ui-interactive text-ui-primary"
                                                 : "border-ui-border text-ui-secondary hover:border-ui-accent/60 hover:text-ui-primary"
                                         }`}
                                 >
-                                    <span className="block text-lg font-bold">{formatTimeControl(id)}</span>
+                                    <span className="block text-base sm:text-lg font-bold whitespace-nowrap">{formatTimeControl(id)}</span>
                                     <span className="block text-xs">{category}</span>
                                 </button>
                             ))}

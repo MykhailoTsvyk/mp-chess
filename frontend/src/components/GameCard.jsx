@@ -1,6 +1,6 @@
 import {Link, useNavigate} from "react-router";
 
-export const GAME_ROW_GRID = "grid grid-cols-[1fr_3.5rem_3rem_6rem] sm:grid-cols-[4.5rem_1fr_4.5rem_4rem_7rem] items-center gap-x-3 sm:gap-x-4"
+export const GAME_ROW_GRID = "grid grid-cols-[1fr_2.5rem_4.5rem] sm:grid-cols-[4.5rem_1fr_4.5rem_4rem_7rem] items-center gap-x-2 sm:gap-x-4 px-3 sm:px-4"
 
 const RESULT_STYLES = {
     win: {label: "W", title: "Win", className: "bg-green-500/15 text-green-500"},
@@ -33,7 +33,8 @@ function PlayerLine({player, pieceColor, isViewedUser}) {
     const square = pieceColor === "white"
         ? "bg-white border-gray-400"
         : "bg-gray-700 border-gray-500"
-    const nameClass = `truncate ${isViewedUser ? "font-bold text-ui-primary" : "text-ui-primary"}`
+    // phones wrap long names onto a second line, bigger screens cut them with "…"
+    const nameClass = `min-w-0 text-sm sm:text-base break-all sm:truncate ${isViewedUser ? "font-bold text-ui-primary" : "text-ui-primary"}`
 
     return (
         <div className="flex items-center gap-2 min-w-0">
@@ -50,7 +51,7 @@ function PlayerLine({player, pieceColor, isViewedUser}) {
                 <span className={`${nameClass} italic text-ui-secondary`}>Deleted user</span>
             )}
             {player.rating != null && (
-                <span className="text-xs text-ui-secondary shrink-0">({player.rating})</span>
+                <span className="hidden sm:inline text-xs text-ui-secondary shrink-0">({player.rating})</span>
             )}
             {player.change != null && (
                 <span className={`text-xs font-semibold shrink-0 ${changeClass(player.change)}`}>
@@ -82,7 +83,7 @@ export default function GameCard({ game }) {
             tabIndex={0}
             onClick={openGame}
             onKeyDown={handleKeyDown}
-            className={`${GAME_ROW_GRID} px-4 py-3 border-b border-ui-border last:border-b-0 even:bg-ui-main transition-colors hover:bg-ui-interactive cursor-pointer focus:outline-none focus-visible:bg-ui-interactive`}
+            className={`${GAME_ROW_GRID} py-3 border-b border-ui-border last:border-b-0 even:bg-ui-main transition-colors hover:bg-ui-interactive cursor-pointer focus:outline-none focus-visible:bg-ui-interactive`}
         >
             <div className="hidden sm:flex flex-col items-center text-xs text-ui-secondary leading-tight">
                 <span className="font-semibold text-ui-primary">{formatTimeControl(game.time_control)}</span>
@@ -101,9 +102,9 @@ export default function GameCard({ game }) {
                 {result.label}
             </span>
 
-            <span className="text-sm text-ui-primary text-center">{game.moves}</span>
+            <span className="hidden sm:block text-sm text-ui-primary text-center">{game.moves}</span>
 
-            <span className="text-sm text-ui-secondary text-center whitespace-nowrap">{formatDate(game.ended_at)}</span>
+            <span className="text-xs sm:text-sm text-ui-secondary text-center whitespace-nowrap">{formatDate(game.ended_at)}</span>
         </div>
     )
 }
