@@ -1,6 +1,6 @@
 import {Router} from "express";
 import userController from "../controllers/user.controller.js";
-import {validateRegistration, validateLogin, protectedAuthMiddleware} from "../middleware/auth.middleware.js";
+import {validateRegistration, validateLogin, validateUserSearch, protectedAuthMiddleware} from "../middleware/auth.middleware.js";
 
 const router = new Router()
 
@@ -13,6 +13,7 @@ router.get("/user/:id", protectedAuthMiddleware, userController.getOneUser)
 router.put("/user/:id", protectedAuthMiddleware, userController.updateUser)
 router.delete("/user/:id", protectedAuthMiddleware, userController.deleteUser)
 router.get("/recent-matches/:id", protectedAuthMiddleware, userController.getUserMatches)
+router.get("/users", protectedAuthMiddleware, validateUserSearch, userController.getUsersByUsername)
 
 // redo activation function to produce new tokens where email is verified
 router.post("/resend-activation", protectedAuthMiddleware, userController.resendActivation)

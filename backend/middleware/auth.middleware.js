@@ -54,6 +54,40 @@ export const validateRegistration = (req, res, next) => {
     next()
 }
 
+
+export const validateUserSearch = (req, res, next) => {
+    const {username, limit} = req.query
+    const errors = []
+
+    // a repeated parameter (?username=a&username=b) arrives as an array
+    if (typeof username !== 'string') {
+        return res.status(400).json({ status: 'fail', errors: [{ field: 'username', message: 'Username is required and must be text' }] })
+    }
+
+    const search = username.trim()
+
+    if (search.length < 3 || search.length > 20) {
+        errors.push({ field: 'username', message: 'Search must be between 3 and 20 characters long' })
+    }
+    if (!usernameRegex.test(search)) {
+        errors.push({ field: 'username', message: 'Search can only contain letters, numbers, and underscores' })
+    }
+
+    const parsedLimit = limit === undefined ? 10 : Number(limit)
+
+    if (!Number.isInteger(parsedLimit) || parsedLimit < 1 || parsedLimit > 20) {
+        errors.push({ field: 'limit', message: 'Limit must be a whole number between 1 and 20' })
+    }
+
+    if (errors.length > 0) {
+        return res.status(400).json({ status: 'fail', errors })
+    }
+
+    req.search = {username: search, limit: parsedLimit}
+
+    next()
+}
+
 export const validateLogin = (req, res, next) => {
     let {email, password} = req.body
 

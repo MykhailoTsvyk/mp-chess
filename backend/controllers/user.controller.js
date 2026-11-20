@@ -155,6 +155,18 @@ class userController {
         }
     }
 
+    async getUsersByUsername(req, res) {
+        const {username, limit} = req.search
+
+        try {
+            let users = await userService.getUsersByUsername(username, limit)
+            return res.status(200).json({users})
+        } catch (e) {
+            console.log(e)
+            return res.status(500).json({message: "Bad request"})
+        }
+    }
+
 }
 
 export default new userController()

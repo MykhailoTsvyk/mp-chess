@@ -76,7 +76,7 @@ export default function Header() {
                     {/* Desktop Navigation Links */}
                     <nav className="hidden md:flex space-x-5 text-sm font-medium text-ui-secondary">
                         <Link to={PLAY_SECTION} className="hover:text-ui-primary transition-colors py-1">Play</Link>
-                        <a href="#friends" className="hover:text-ui-primary transition-colors flex items-center py-1">Friends</a>
+                        <Link to="/friends" className="hover:text-ui-primary transition-colors flex items-center py-1">Friends</Link>
                         <a href="#leaderboard" className="hover:text-ui-primary transition-colors py-1">Leaderboard</a>
                     </nav>
                 </div>
@@ -144,13 +144,13 @@ export default function Header() {
                     >
                         Play
                     </Link>
-                    <a
-                        href="#friends"
+                    <Link
+                        to="/friends"
                         onClick={() => setIsMenuOpen(false)}
                         className="text-ui-secondary hover:text-ui-primary hover:bg-ui-interactive p-2 rounded transition-colors text-sm font-medium flex items-center justify-between"
                     >
                         Friends
-                    </a>
+                    </Link>
                     <a
                         href="#leaderboard"
                         onClick={() => setIsMenuOpen(false)}

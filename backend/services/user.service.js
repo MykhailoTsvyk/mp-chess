@@ -159,6 +159,15 @@ class userService {
         }
     }
 
+    async getUsersByUsername(username, limit) {
+        // escape problem when user sends a_b which would break logic
+        const escaped = username.replace(/[\\%_]/g, "\\$&") 
+        const result = await db.any(`SELECT id, username FROM users WHERE username ILIKE $1 ORDER BY username LIMIT $2`,
+             [`%${escaped}%`, limit])
+
+        return result
+    }
+
     // ADD check whether user is already activated in order to avoid useless links requesting
     async activate(activationLink) {
         try {

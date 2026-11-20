@@ -27,18 +27,21 @@ CREATE TABLE tokens(
     CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE TYPE friendship_status AS ENUM ('accepted', 'rejected', 'pending');
+CREATE TYPE friendship_status AS ENUM ('pending', 'accepted'); -- a declined request is deleted
 
 CREATE TABLE friendships (
     id SERIAL PRIMARY KEY,
     status friendship_status NOT NULL DEFAULT 'pending',
-    user_1 INT NOT NULL,
-    user_2 INT NOT NULL,
-    CONSTRAINT fk_user_1 FOREIGN KEY (user_1) REFERENCES users(id) ON DELETE CASCADE,
-    CONSTRAINT fk_user_2 FOREIGN KEY (user_2) REFERENCES users(id) ON DELETE CASCADE,
-    CONSTRAINT unique_friendship UNIQUE (user_1, user_2),
-    CONSTRAINT check_not_self CHECK (user_1 <> user_2)
+    sender_id INT NOT NULL,
+    recipient_id INT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT fk_friendship_sender FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_friendship_recipient FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT check_not_self CHECK (sender_id <> recipient_id)
 );
+
+-- one row per pair of users, whichever of them sent the request
+CREATE UNIQUE INDEX unique_friendship_pair ON friendships (LEAST(sender_id, recipient_id), GREATEST(sender_id, recipient_id));
 
 CREATE TABLE notifications (
     id SERIAL PRIMARY KEY,

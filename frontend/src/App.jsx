@@ -7,6 +7,7 @@ import ProfilePage from "./pages/ProfilePage.jsx";
 import ActivationPage from "./pages/ActivationPage.jsx";
 import PageNotFound from "./pages/PageNotFound.jsx";
 import GamePage from "./pages/GamePage.jsx";
+import FriendshipsPage from "./pages/FriendshipsPage.jsx";
 
 // logged-out users go to login; the page they wanted is kept so login can send them back
 function ProtectedRoute({children}) {
@@ -46,6 +47,9 @@ function App() {
             />
             <Route path="/game/:gameID"
                    element={<ProtectedRoute><GamePage/></ProtectedRoute>}
+            />
+            <Route path="/friends"
+                   element={<ProtectedRoute><FriendshipsPage/></ProtectedRoute>}
             />
             <Route path="*"
                     element={<PageNotFound/>}
