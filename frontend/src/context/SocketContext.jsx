@@ -3,7 +3,8 @@ import {createContext, useContext, useEffect, useRef, useState} from "react";
 import {useAuth} from "./AuthContext.jsx";
 import {refreshSession} from "../api/axios.js";
 
-const socket = io("http://localhost:3000/", {
+// no URL: connects to the server the page came from (Vite proxies /socket.io in development)
+const socket = io({
     withCredentials: true,
     autoConnect: false
 })

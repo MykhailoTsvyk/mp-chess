@@ -5,6 +5,8 @@ import path from "node:path"
 export function loadTestEnv() {
     dotenv.config({path: path.resolve(import.meta.dirname, "../../.env"), quiet: true})
     process.env.DB_NAME = process.env.TEST_DB_NAME || "chessMP_test"
+    // db.js prefers DATABASE_URL; never let the tests reach a production database
+    delete process.env.DATABASE_URL
 
     // the setup drops and recreates the schema, so refuse anything that isn't a test database
     if (!process.env.DB_NAME.endsWith("_test")) {

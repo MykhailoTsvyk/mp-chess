@@ -2,7 +2,6 @@ import {BrowserRouter, Navigate, Route, Routes, useLocation} from "react-router"
 import AuthenticationPage from "./pages/AuthenticationPage.jsx";
 import HomePage from "./pages/HomePage.jsx";
 import {useAuth} from "./context/AuthContext.jsx";
-import {useSocket} from "./context/SocketContext.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import ActivationPage from "./pages/ActivationPage.jsx";
 import PageNotFound from "./pages/PageNotFound.jsx";
@@ -26,8 +25,6 @@ function GuestRoute({children}) {
 }
 
 function App() {
-    const {socket} = useSocket()
-    console.log(socket)
 
   return (
       <BrowserRouter>

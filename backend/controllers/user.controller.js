@@ -3,6 +3,15 @@ import emailService from "../services/email.service.js";
 import tokenService from "../services/token.service.js";
 import userDto from "../dtos/user.dto.js";
 
+// secure: only sent over HTTPS, so it's off for http://localhost in development
+// sameSite lax: not sent with requests started by other sites (frontend and API share one domain)
+const REFRESH_COOKIE_OPTIONS = {
+    maxAge: 14 * 24 * 60 * 60 * 1000,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax"
+}
+
 class userController {
     async register(req, res) {
         const {username, email, password} = req.body
@@ -10,7 +19,7 @@ class userController {
             const userData = await userService.registerUser(username, email, password)
             const link = await userService.generateActivationLink(userData.user.id)
             await emailService.sendActivationEmail(userData.user, link)
-            res.cookie('refreshToken', userData.refresh, {maxAge: 14 * 24 * 60 * 60 * 1000, httpOnly: true})
+            res.cookie('refreshToken', userData.refresh, REFRESH_COOKIE_OPTIONS)
             res.json({access: userData.access, user: userData.user})
         } catch (e) {
             res.status(e.status || 400).json({
@@ -25,7 +34,7 @@ class userController {
 
         try {
             const result = await userService.loginUser(email, password)
-            res.cookie('refreshToken', result.refresh, {maxAge: 14 * 24 * 60 * 60 * 1000, httpOnly: true})
+            res.cookie('refreshToken', result.refresh, REFRESH_COOKIE_OPTIONS)
             res.json({
                 access: result.access,
                 user: result.user
@@ -46,10 +55,7 @@ class userController {
 
             await tokenService.saveToken(user.id, tokens.refresh)
 
-            res.cookie("refreshToken", tokens.refresh, {
-                httpOnly: true,
-                maxAge: 14 * 24 * 60 * 60 * 1000,
-            })
+            res.cookie("refreshToken", tokens.refresh, REFRESH_COOKIE_OPTIONS)
 
             return res.json({
                 accessToken: tokens.access,
@@ -87,7 +93,7 @@ class userController {
         try {
             const {refreshToken} = req.cookies
             const tokens = await userService.refresh(refreshToken)
-            res.cookie('refreshToken', tokens.refresh, {maxAge: 14 * 24 * 60 * 60 * 1000, httpOnly: true})
+            res.cookie('refreshToken', tokens.refresh, REFRESH_COOKIE_OPTIONS)
             res.json({access: tokens.access, user: tokens.user})
         } catch (e) {
             res.status(401).json({

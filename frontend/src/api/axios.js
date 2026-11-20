@@ -1,7 +1,8 @@
 import axios from "axios";
 
 const api = axios.create({
-    baseURL: 'http://localhost:3000/api',
+    // relative: in production the backend serves this app, in development Vite proxies /api to it
+    baseURL: '/api',
     withCredentials: true
 });
 
@@ -23,7 +24,7 @@ export function refreshSession() {
 
 async function requestNewTokens() {
     const response = await axios.post(
-        'http://localhost:3000/api/refresh',
+        '/api/refresh',
         {},
         { withCredentials: true }
     )

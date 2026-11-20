@@ -1,7 +1,48 @@
 import transporter from "../utils/email.js";
 
+const SENDER_NAME = "Chess App"
+const SENDER_EMAIL = process.env.EMAIL_FROM || "noreply.chess.mp@gmail.com"
+
+// Render's free plan blocks SMTP, so production sends through Brevo's HTTP API;
+// without BREVO_API_KEY (local development) Gmail SMTP through nodemailer is used
+const useBrevo = Boolean(process.env.BREVO_API_KEY)
+
+async function sendWithBrevo({to, subject, html}) {
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+            "api-key": process.env.BREVO_API_KEY,
+            "content-type": "application/json",
+            "accept": "application/json"
+        },
+        body: JSON.stringify({
+            sender: {name: SENDER_NAME, email: SENDER_EMAIL},
+            to: [{email: to}],
+            subject,
+            htmlContent: html
+        })
+    })
+
+    if (!response.ok) {
+        throw new Error(`Brevo responded ${response.status}: ${await response.text()}`)
+    }
+}
+
+async function sendEmail({to, subject, html}) {
+    if (useBrevo) {
+        return sendWithBrevo({to, subject, html})
+    }
+
+    return transporter.sendMail({from: `${SENDER_NAME} <${SENDER_EMAIL}>`, to, subject, html})
+}
+
 class EmailService {
     async verify() {
+        if (useBrevo) {
+            console.log("Email: sending through Brevo.")
+            return
+        }
+
         transporter.verify((error) => {
             if (error) {
                 console.error(error);
@@ -12,10 +53,10 @@ class EmailService {
     }
 
     async sendActivationEmail(user, verificationLink) {
-        console.log(verificationLink)
+        if (process.env.NODE_ENV !== "production") console.log(verificationLink)
+
         try {
-            await transporter.sendMail({
-                from: "Chess App <noreply.chess.mp@gmail.com>",
+            await sendEmail({
                 to: user.email,
                 subject: "Welcome to Chess App!",
                 html: `
@@ -39,7 +80,7 @@ class EmailService {
             `,
             });
         } catch (e) {
-            console.log(e)
+            console.error(e)
         }
 
     }
