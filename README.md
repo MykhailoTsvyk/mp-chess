@@ -2,12 +2,29 @@
 
 A full-stack, real-time chess platform built with React, Node.js/Express, PostgreSQL and Socket.io. Players register, verify their email, queue for a match and play live against other players, with ELO ratings and game history.
 
+## Live Demo
+
+**[mp-chess.onrender.com](https://mp-chess.onrender.com)**
+
+> ⏳ **The first load can take about a minute.** The app runs on a free hosting plan that goes to sleep when nobody is using it, and the first visit wakes it up. After that it responds normally.
+
+### Demo accounts
+
+Both accounts are already verified and have a match history against each other, so you can skip registration:
+
+| Username | Email (login) | Password |
+| -------- | ------------------- | ---------- |
+| demo1 | `demo1@example.com` | `12345678` |
+| demo2 | `demo2@example.com` | `12345678` |
+
+**To play a live game:** log in as `demo1` in a normal window and as `demo2` in a private (incognito) window or another browser, choose the **same time control** in both, and press **Play Game**. The two accounts are matched into a game against each other.
+
 > **Status:** work in progress. Authentication, email verification, matchmaking with time controls, live gameplay (with chat and spectating), Elo ratings, match history and the notification system work. No feature sends notifications yet; friends will be the first.
 
 ## Features
 
 - **Authentication**: registration and login, bcrypt password hashing, short-lived JWT access tokens (30 min) and refresh tokens (14 days) stored in an HTTP-only cookie, with rotation on refresh.
-- **Email verification**: an activation link is sent via Gmail (Nodemailer). Tokens expire after 1 hour, and an hourly cron job removes expired tokens.
+- **Email verification**: an activation link is sent by email, through Brevo's HTTP API in production and Gmail (Nodemailer) in local development. Tokens expire after 1 hour, and an hourly cron job removes expired tokens.
 - **Authenticated WebSockets**: the Socket.io middleware checks the refresh-token cookie against the database and only accepts users who have verified their email.
 - **Matchmaking**: a queue-based system that pairs two waiting players into a private game room. Players pick a time control (1+0, 3+0, 3+2, 5+0, 10+0, 15+10) and are only matched with players who chose the same one. If the same user queues from several tabs, only the newest connection stays in the queue.
 - **Chess clocks**: each player's clock runs on their turn and gets the increment after each move. The server stores each side's remaining time and when the current turn started, and schedules a single timeout instead of ticking every second. Running out of time loses. Each side must make its first move within 1 minute, otherwise the game is aborted.
@@ -34,7 +51,8 @@ A full-stack, real-time chess platform built with React, Node.js/Express, Postgr
 | Backend  | Node.js (ES modules), Express 5, Socket.io, pg-promise, chess.js, node-cron |
 | Auth     | jsonwebtoken, bcrypt, cookie-parser                                          |
 | Database | PostgreSQL                                                                   |
-| Email    | Nodemailer (Gmail SMTP)                                                      |
+| Email    | Brevo HTTP API (production), Nodemailer with Gmail SMTP (development)        |
+| Hosting  | Render (app), Neon (PostgreSQL)                                              |
 
 ## Project Structure
 
@@ -92,7 +110,7 @@ psql -d chess_app -f backend/db/db-schema.sql
 
 ### 3. Configure environment variables
 
-Create `backend/.env`:
+Create `backend/.env` ([backend/.env.example](backend/.env.example) lists every variable with an explanation):
 
 ```env
 PORT=3000
@@ -134,7 +152,16 @@ cd frontend
 npm run dev
 ```
 
-Open http://localhost:5173.
+Open http://localhost:5173. Vite proxies `/api` and `/socket.io` to the backend on port 3000, so the browser sees a single origin, as in production.
+
+### Deployment
+
+The live demo runs as a single Render web service: Express serves the API, the WebSocket server and the built React app from one domain, so the refresh-token cookie works without cross-site settings. The database is on Neon.
+
+- **Build command:** `cd frontend && npm ci --include=dev && npm run build && cd ../backend && npm ci`
+- **Start command:** `cd backend && node index.js`
+- **Environment variables:** `NODE_ENV=production`, `DATABASE_URL` (Neon connection string), `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `CLIENT_URL` (the site's URL, without a trailing slash), `SALT_ROUNDS`, `BREVO_API_KEY` and `EMAIL_FROM` (a sender verified in Brevo). Render's free plan blocks SMTP, which is why production email goes through Brevo's HTTP API.
+- **Database:** run `backend/db/db-schema.sql` once on the new database.
 
 > The frontend origin (`http://localhost:5173`) and the API URL (`http://localhost:3000`) are currently hard-coded in [backend/index.js](backend/index.js), [frontend/src/api/axios.js](frontend/src/api/axios.js) and [frontend/src/context/SocketContext.jsx](frontend/src/context/SocketContext.jsx). If you change ports, update them there too.
 
