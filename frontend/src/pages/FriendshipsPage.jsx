@@ -5,7 +5,11 @@ export default function FriendshipsPage() {
 
     return (
         <MainLayout>
-            <SearchPlayerByUsername/>
+            <div className="w-full max-w-3xl mx-auto space-y-6">
+                <div className="w-full max-w-xl mx-auto">
+                    <SearchPlayerByUsername/>
+                </div>
+            </div>
         </MainLayout>
     )
 }
